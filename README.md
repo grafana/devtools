@@ -21,3 +21,5 @@ Download events from github api about one repo.
   - get data from https://developer.github.com/v3/activity/events/#list-issue-events-for-a-repository
   - store each event in postgre
   - create transformation that can be rerunned.
+
+curl -I https://api.github.com/repos/grafana/grafana/events
