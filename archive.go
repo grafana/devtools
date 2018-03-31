@@ -52,19 +52,24 @@ func download(url string) {
 	events := []GithubEvent{}
 
 	for {
-		//zr.Multistream(false)
-		scanner := bufio.NewScanner(zr)
+		zr.Multistream(false)
+
+		zr2 := bufio.NewReaderSize(zr, 1024*1024)
+		scanner := bufio.NewScanner(zr2)
+		scanner.Buffer([]byte(""), 1024*1024) //increase buffer limit
+
 		for scanner.Scan() {
 			ge := GithubEvent{}
 			err := json.Unmarshal([]byte(scanner.Text()), &ge)
 			logOnError(err, "parsing json")
 
-			if ge.Type == "PushEvent" {
-				events = append(events, ge)
-			}
+			// if ge.Type == "PushEvent" {
+			events = append(events, ge)
+			// }
 		}
 
-		if err := scanner.Err(); err != nil {
+		err := scanner.Err()
+		if err != nil {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 			break
 		}
