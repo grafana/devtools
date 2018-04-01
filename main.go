@@ -40,7 +40,5 @@ func main() {
 	// url := fmt.Sprintf("https://api.github.com/repos/%s/events", repo)
 	// keepSearching(url)
 
-	//var url = `http://data.githubarchive.org/2018-01-01-18.json.gz`
-
 	downloadEvents()
 }

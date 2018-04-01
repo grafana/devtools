@@ -10,16 +10,14 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/go-xorm/xorm"
 )
-
-//
-
-var jsonUrl = `http://localhost:8100/2018-01-01-2.json.gz`
 
 var archiveUrlPattern = `http://localhost:8100/%s-%s-%s-%d.json.gz`
 
 var eventCount = 0
-var events []GithubEvent
+var allEvents []GithubEvent
 
 func downloadEvents() {
 	var urls []string
@@ -32,12 +30,10 @@ func downloadEvents() {
 		for _, m := range months {
 			for _, d := range days {
 				for hour := 1; hour < 24; hour++ {
-					url := fmt.Sprintf(archiveUrlPattern, y, m, d, hour)
-					urls = append(urls, url)
+					urls = append(urls, fmt.Sprintf(archiveUrlPattern, y, m, d, hour))
 				}
 			}
 		}
-
 	}
 
 	start := time.Now()
@@ -45,7 +41,7 @@ func downloadEvents() {
 		download(u)
 	}
 
-	fmt.Println("filtred event: ", len(events))
+	fmt.Println("filtred event: ", len(allEvents))
 	fmt.Println("event count: ", eventCount)
 	fmt.Println("ellapsed: ", time.Since(start))
 }
@@ -61,10 +57,11 @@ func download(url string) {
 	zr, err := gzip.NewReader(buf)
 	logOnError(err, "parsing compress content")
 
+	var events []GithubEvent
+
 	for {
 		zr.Multistream(false)
 
-		//zr2 := bufio.NewReaderSize(zr, 1024*1024)
 		scanner := bufio.NewScanner(zr)
 		scanner.Buffer([]byte(""), 1024*1024) //increase buffer limit
 
@@ -75,7 +72,7 @@ func download(url string) {
 
 			eventCount++
 			if ge.Type == "PushEvent" {
-				events = append(events, ge)
+				allEvents = append(allEvents, ge)
 			}
 		}
 
@@ -96,5 +93,12 @@ func download(url string) {
 		}
 	}
 
+	x, err := xorm.NewEngine("postgre", "user=githubstats password=githubstats host=localhost port=5432 dbname=githubstats sslmode=disable")
+
+	_, err = x.Insert(events)
+
+	logOnError(err, "insert into db")
+
+	allEvents = append(allEvents, events...)
 	logOnError(zr.Close(), "closing buffer")
 }
