@@ -9,33 +9,45 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
-// wget http://data.githubarchive.org/2015-01-{01..30}-{0..23}.json.gz
 //
 
 var jsonUrl = `http://localhost:8100/2018-01-01-2.json.gz`
 
-var archiveUrlPattern = `http://localhost:8100/%d-%s-%s-%d.json.gz`
+var archiveUrlPattern = `http://localhost:8100/%s-%s-%s-%d.json.gz`
+
+var eventCount = 0
+var events []GithubEvent
 
 func downloadEvents() {
 	var urls []string
 
-	//for day := 0; day < 5; day++ {
-	year := 2018
-	month := "01"
-	day := "01"
-	for hour := 1; hour < 24; hour++ {
-		url := fmt.Sprintf(archiveUrlPattern, year, month, day, hour)
-		urls = append(urls, url)
+	years := []string{"2018"}
+	months := []string{"01"}
+	//days := []string{"01", "02", "03", "04", "05"}
+	days := []string{"01"}
+	for _, y := range years {
+		for _, m := range months {
+			for _, d := range days {
+				for hour := 1; hour < 24; hour++ {
+					url := fmt.Sprintf(archiveUrlPattern, y, m, d, hour)
+					urls = append(urls, url)
+				}
+			}
+		}
+
 	}
-	//}
 
-	//urls = []string{jsonUrl}
-
+	start := time.Now()
 	for _, u := range urls {
 		download(u)
 	}
+
+	fmt.Println("filtred event: ", len(events))
+	fmt.Println("event count: ", eventCount)
+	fmt.Println("ellapsed: ", time.Since(start))
 }
 
 func download(url string) {
@@ -49,13 +61,11 @@ func download(url string) {
 	zr, err := gzip.NewReader(buf)
 	logOnError(err, "parsing compress content")
 
-	events := []GithubEvent{}
-
 	for {
 		zr.Multistream(false)
 
-		zr2 := bufio.NewReaderSize(zr, 1024*1024)
-		scanner := bufio.NewScanner(zr2)
+		//zr2 := bufio.NewReaderSize(zr, 1024*1024)
+		scanner := bufio.NewScanner(zr)
 		scanner.Buffer([]byte(""), 1024*1024) //increase buffer limit
 
 		for scanner.Scan() {
@@ -63,9 +73,10 @@ func download(url string) {
 			err := json.Unmarshal([]byte(scanner.Text()), &ge)
 			logOnError(err, "parsing json")
 
-			// if ge.Type == "PushEvent" {
-			events = append(events, ge)
-			// }
+			eventCount++
+			if ge.Type == "PushEvent" {
+				events = append(events, ge)
+			}
 		}
 
 		err := scanner.Err()
@@ -73,9 +84,6 @@ func download(url string) {
 			fmt.Fprintln(os.Stderr, "reading standard input:", err)
 			break
 		}
-
-		fmt.Println("event count: ", len(events))
-		fmt.Print("\n\n")
 
 		if scanner.Err() == io.EOF {
 			fmt.Println("scanner EOF")
@@ -86,9 +94,7 @@ func download(url string) {
 		if err == io.EOF {
 			break
 		}
-		//logOnError(err, "Reseting buffer")
 	}
 
-	err = zr.Close()
-	logOnError(err, "closing buffer")
+	logOnError(zr.Close(), "closing buffer")
 }
