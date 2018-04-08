@@ -4,6 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"time"
+
+	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
 
 var (
@@ -17,6 +21,29 @@ type Repo struct {
 }
 
 type GithubEvent struct {
+	Id     int64
+	Type   string
+	RepoId int64
+	Date   time.Time
+}
+
+func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
+	id, _ := strconv.ParseInt(gej.Id, 10, 0)
+
+	var repoId int64
+	if gej.Repo != nil {
+		repoId = gej.Repo.Id
+	}
+
+	return &GithubEvent{
+		Id:     id,
+		Type:   gej.Type,
+		RepoId: repoId,
+		Date:   time.Now(),
+	}
+}
+
+type GithubEventJson struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
 	Repo *Repo  `json:"repo"`
@@ -41,4 +68,5 @@ func main() {
 	// keepSearching(url)
 
 	downloadEvents()
+
 }

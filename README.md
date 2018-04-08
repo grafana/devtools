@@ -24,4 +24,8 @@ commands:
 wget http://data.githubarchive.org/2015-01-{01..30}-{0..23}.json.gz
 
 curl -I https://api.github.com/repos/grafana/grafana/events
+
+docker run -it --rm jbergknoff/postgresql-client postgresql://user:pass@host:5432/db
+
+docker run -it --rm jbergknoff/postgresql-client postgresql://githubstats:githubstats@localhost:5432/githubstats
 ```
