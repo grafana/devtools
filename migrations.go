@@ -1,0 +1,52 @@
+package main
+
+import (
+	"github.com/go-xorm/xorm"
+	"github.com/grafana/grafana/pkg/services/sqlstore/migrator"
+)
+
+func initDatabase(dbType string, connectionString string) error {
+	x, err := xorm.NewEngine(dbType, connectionString)
+	logOnError(err, "create db connection")
+
+	mig := migrator.NewMigrator(x)
+
+	migrationLogV1 := migrator.Table{
+		Name: "migration_log",
+		Columns: []*migrator.Column{
+			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true, IsAutoIncrement: true},
+			{Name: "migration_id", Type: migrator.DB_NVarchar, Length: 255},
+			{Name: "sql", Type: migrator.DB_Text},
+			{Name: "success", Type: migrator.DB_Bool},
+			{Name: "error", Type: migrator.DB_Text},
+			{Name: "timestamp", Type: migrator.DB_DateTime},
+		},
+	}
+
+	mig.AddMigration("create migration_log table", migrator.NewAddTableMigration(migrationLogV1))
+
+	archiveFile := migrator.Table{
+		Name: "archive_file",
+		Columns: []*migrator.Column{
+			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true, IsAutoIncrement: true},
+			{Name: "date", Type: migrator.DB_Text},
+			{Name: "filename", Type: migrator.DB_Text},
+		},
+	}
+
+	mig.AddMigration("create archive file table", migrator.NewAddTableMigration(archiveFile))
+
+	githubEvent := migrator.Table{
+		Name: "github_event",
+		Columns: []*migrator.Column{
+			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true},
+			{Name: "type", Type: migrator.DB_Text},
+			{Name: "repo_id", Type: migrator.DB_BigInt},
+			{Name: "date", Type: migrator.DB_Text},
+		},
+	}
+
+	mig.AddMigration("create github event table", migrator.NewAddTableMigration(githubEvent))
+
+	return mig.Start()
+}

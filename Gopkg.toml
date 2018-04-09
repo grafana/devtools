@@ -33,5 +33,6 @@
   version = "5.0.4"
 
 [prune]
+  non-go = true
   go-tests = true
   unused-packages = true

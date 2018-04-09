@@ -11,9 +11,11 @@ import (
 )
 
 var (
-	repo             = "grafana/grafana"
-	connectionString = ""
+	repo = "grafana/grafana"
+	//connectionString = "user=githubstats password=githubstats host=localhost port=5432 dbname=githubstats sslmode=disable", "connection string"
+	connectionString = "./test.db"
 	apiToken         = ""
+	database         = "sqlite3"
 )
 
 type Repo struct {
@@ -60,13 +62,12 @@ func logOnError(err error, message string, args ...interface{}) {
 
 func main() {
 	flag.StringVar(&repo, "repo", "grafana/grafana", "name of the repo you want to process")
-	flag.StringVar(&connectionString, "connectionString", "default?", "connection string")
+	//flag.StringVar(&connectionString, "connectionString", "")
 	flag.StringVar(&apiToken, "apiToken", "default?", "")
 	flag.Parse()
 
-	// url := fmt.Sprintf("https://api.github.com/repos/%s/events", repo)
-	// keepSearching(url)
+	err := initDatabase(database, connectionString)
+	logOnError(err, "migration")
 
 	downloadEvents()
-
 }
