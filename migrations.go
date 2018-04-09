@@ -7,7 +7,9 @@ import (
 
 func initDatabase(dbType string, connectionString string) error {
 	x, err := xorm.NewEngine(dbType, connectionString)
-	logOnError(err, "create db connection")
+	if err != nil {
+		return err
+	}
 
 	mig := migrator.NewMigrator(x)
 

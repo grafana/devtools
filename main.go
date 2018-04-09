@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -16,6 +17,7 @@ var (
 	connectionString = "./test.db"
 	apiToken         = ""
 	database         = "sqlite3"
+	repoId           = int64(15111821)
 )
 
 type Repo struct {
@@ -67,7 +69,9 @@ func main() {
 	flag.Parse()
 
 	err := initDatabase(database, connectionString)
-	logOnError(err, "migration")
+	if err != nil {
+		log.Fatalf("migration failed. error: %v", err)
+	}
 
 	downloadEvents()
 }

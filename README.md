@@ -15,13 +15,14 @@
 - store each event in postgre
 - process events from postgre
 
-commands:
+
+download arch files
 ```bash
-#download arch files
 cd archive
 wget http://data.githubarchive.org/2015-01-{01..30}-{0..23}.json.gz
 ```
 
+commands:
 ```bash
 curl -I https://api.github.com/repos/grafana/grafana/events
 

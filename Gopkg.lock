@@ -74,6 +74,12 @@
   version = "v1.6.0"
 
 [[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/teris-io/shortid"
   packages = ["."]
@@ -100,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0d65d96de0c7432b6f6312592a6319b14d90e6fd7451c2bd2e971cb9ff755d3a"
+  inputs-digest = "822be8677a320362af0473a2b5d2671839b195501a6e034cdaa3ee8d19b795e8"
   solver-name = "gps-cdcl"
   solver-version = 1

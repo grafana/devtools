@@ -9,17 +9,17 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/go-xorm/xorm"
 
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/pkg/errors"
 )
 
-var archiveUrlPattern = `http://localhost:8100/%s-%s-%s-%d.json.gz`
-
+//var archiveUrlPattern = `http://localhost:8100/%s-%s-%s-%d.json.gz`
+var archiveUrlPattern = `http://data.githubarchive.org/%s-%s-%s-%d.json.gz`
 var eventCount = 0
 var allEvents []GithubEventJson
 
@@ -42,7 +42,10 @@ func downloadEvents() {
 
 	start := time.Now()
 	for _, u := range urls {
-		download(u)
+		err := download(u)
+		if err != nil {
+			log.Fatalf("failed to download file. error: %v", err)
+		}
 	}
 
 	log.Println("filtered event: ", len(allEvents))
@@ -50,16 +53,20 @@ func downloadEvents() {
 	log.Println("elapsed: ", time.Since(start))
 }
 
-func download(url string) {
-	fmt.Printf("downloading: %s\n", url)
+func download(url string) error {
+	log.Printf("downloading: %s\n", url)
 	res, err := http.Get(url)
-	logOnError(err, "failed to download json file")
+	if err != nil {
+		return errors.Wrap(err, "failed to download json file")
+	}
 
 	buf := &bytes.Buffer{}
 	buf.ReadFrom(res.Body)
 
 	zr, err := gzip.NewReader(buf)
-	logOnError(err, "parsing compress content")
+	if err != nil {
+		return errors.Wrap(err, "parsing compress content")
+	}
 
 	var events []GithubEventJson
 
@@ -72,22 +79,25 @@ func download(url string) {
 		for scanner.Scan() {
 			ge := GithubEventJson{}
 			err := json.Unmarshal([]byte(scanner.Text()), &ge)
-			logOnError(err, "parsing json")
+			if err != nil {
+				return errors.Wrap(err, "parsing json")
+			}
 
 			eventCount++
-			if ge.Type == "PushEvent" {
+			//if ge.Type == "PushEvent" {
+			if ge.Repo.Id == repoId {
 				events = append(events, ge)
 			}
 		}
 
 		err := scanner.Err()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "reading standard input:", err)
+			log.Println("reading standard input:", err)
 			break
 		}
 
 		if scanner.Err() == io.EOF {
-			fmt.Println("scanner EOF")
+			log.Println("scanner EOF")
 			break
 		}
 
@@ -105,11 +115,13 @@ func download(url string) {
 	}
 
 	//insert with a batch of 100 rows
-	for i := 0; i >= len(dbEvents); i += 100 {
+	for i := 0; i > len(dbEvents); i += 100 {
 		_, err = engine.Insert(dbEvents[i : i+100])
-		logOnError(err, "insert")
+		if err != nil {
+			return errors.Wrap(err, "inserting rows to database")
+		}
 	}
 
 	allEvents = append(allEvents, events...)
-	logOnError(zr.Close(), "closing buffer")
+	return zr.Close()
 }

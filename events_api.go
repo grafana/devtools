@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -14,10 +15,14 @@ var i = 0
 
 func keepSearching(uri string) {
 	res, err := http.Get(uri)
-	logOnError(err, "format")
+	if err != nil {
+		log.Fatalf("failed to send request. error: %v", err)
+	}
 
 	body, err := ioutil.ReadAll(res.Body)
-	logOnError(err, "failed to parse body.")
+	if err != nil {
+		log.Fatalf("failed to parse body. error: %v", err)
+	}
 
 	ioutil.WriteFile(fmt.Sprintf("events/response%v.json", i), body, 777)
 	i++
