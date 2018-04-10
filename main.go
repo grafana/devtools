@@ -19,34 +19,42 @@ var (
 )
 
 type ArchiveFile struct {
-	Id    int64
+	ID    int64
 	Year  int
 	Month int
 	Day   int
 	Hour  int
 }
 
+// Equals compare two *ArchiveFile to see if they are equal
+func (a *ArchiveFile) Equals(other *ArchiveFile) bool {
+	return a.Year == other.Year &&
+		a.Month == other.Month &&
+		a.Day == other.Day &&
+		a.Hour == other.Hour
+}
+
 type Repo struct {
-	Id int64 `json:"id"`
+	ID int64 `json:"id"`
 }
 
 type GithubEvent struct {
-	Id     int64
+	ID     int64
 	Type   string
 	RepoId int64
 	Date   time.Time
 }
 
 func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
-	id, _ := strconv.ParseInt(gej.Id, 10, 0)
+	id, _ := strconv.ParseInt(gej.ID, 10, 0)
 
 	var repoId int64
 	if gej.Repo != nil {
-		repoId = gej.Repo.Id
+		repoId = gej.Repo.ID
 	}
 
 	return &GithubEvent{
-		Id:     id,
+		ID:     id,
 		Type:   gej.Type,
 		RepoId: repoId,
 		Date:   time.Now(),
@@ -54,7 +62,7 @@ func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
 }
 
 type GithubEventJson struct {
-	Id   string `json:"id"`
+	ID   string `json:"id"`
 	Type string `json:"type"`
 	Repo *Repo  `json:"repo"`
 }

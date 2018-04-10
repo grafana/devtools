@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 
 	_ "github.com/lib/pq"
@@ -33,19 +34,20 @@ func downloadEvents() {
 
 	years := []int{2018}
 	months := []int{01}
-	days := []int{30}
+	days := []int{28, 29, 30}
 
 	start := time.Now()
 
 	engine, err := xorm.NewEngine(database, connectionString)
+	engine.SetColumnMapper(core.GonicMapper{})
 	if err != nil {
 		log.Fatalf("cannot setup connection. error: %v", err)
 	}
 
-	var archFiles []ArchiveFile
+	var archFiles []*ArchiveFile
 	err = engine.Find(&archFiles)
 	if err != nil {
-		log.Fatalf("could not find archivefile")
+		log.Fatalf("could not find archivefile. error: %v", err)
 	}
 
 	log.Printf("found %v arch files", len(archFiles))
@@ -69,7 +71,22 @@ func downloadEvents() {
 		for _, m := range months {
 			for _, d := range days {
 				for hour := 0; hour < 24; hour++ {
-					downloadUrls <- &ArchiveFile{Year: y, Month: m, Day: d, Hour: hour}
+
+					//TODO: use hashset to see if the file have been
+					// processed before. This looks like shiet
+					af := &ArchiveFile{Year: y, Month: m, Day: d, Hour: hour}
+					uni := true
+					for _, a := range archFiles {
+						if af.Equals(a) {
+							uni = false
+							break
+						}
+					}
+
+					if uni {
+						downloadUrls <- af
+					}
+
 				}
 			}
 		}
@@ -118,7 +135,7 @@ func download(file *ArchiveFile) error {
 
 			eventCount++
 			for _, v := range repoIds {
-				if ge.Repo.Id == v {
+				if ge.Repo.ID == v {
 					events = append(events, ge)
 				}
 			}
@@ -142,6 +159,7 @@ func download(file *ArchiveFile) error {
 	}
 
 	engine, err := xorm.NewEngine(database, connectionString)
+	engine.SetColumnMapper(core.GonicMapper{})
 	if err != nil {
 		log.Fatalf("failed to connect to database. error: %v", err)
 	}
