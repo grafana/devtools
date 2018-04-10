@@ -31,8 +31,10 @@ func initDatabase(dbType string, connectionString string) error {
 		Name: "archive_file",
 		Columns: []*migrator.Column{
 			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true, IsAutoIncrement: true},
-			{Name: "date", Type: migrator.DB_Text},
-			{Name: "filename", Type: migrator.DB_Text},
+			{Name: "year", Type: migrator.DB_Int},
+			{Name: "month", Type: migrator.DB_Int},
+			{Name: "day", Type: migrator.DB_Int},
+			{Name: "hour", Type: migrator.DB_Int},
 		},
 	}
 

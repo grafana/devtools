@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"time"
 
@@ -17,8 +15,16 @@ var (
 	connectionString = "./test.db"
 	apiToken         = ""
 	database         = "sqlite3"
-	repoId           = int64(15111821)
+	repoIds          = []int64{15111821}
 )
+
+type ArchiveFile struct {
+	Id    int64
+	Year  int
+	Month int
+	Day   int
+	Hour  int
+}
 
 type Repo struct {
 	Id int64 `json:"id"`
@@ -51,15 +57,6 @@ type GithubEventJson struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
 	Repo *Repo  `json:"repo"`
-}
-
-func logOnError(err error, message string, args ...interface{}) {
-	if err == nil {
-		return
-	}
-
-	fmt.Fprintf(os.Stderr, message+" error: %v", append(args, err))
-	os.Exit(1)
 }
 
 func main() {

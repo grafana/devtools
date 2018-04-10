@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-xorm/xorm"
@@ -16,45 +17,76 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 //var archiveUrlPattern = `http://localhost:8100/%s-%s-%s-%d.json.gz`
-var archiveUrlPattern = `http://data.githubarchive.org/%s-%s-%s-%d.json.gz`
+var archiveUrlPattern = `http://data.githubarchive.org/%d-%02d-%02d-%d.json.gz`
 var eventCount = 0
 var allEvents []GithubEventJson
+var lock sync.Mutex
+
+const max_go_routines = 12
 
 func downloadEvents() {
-	var urls []string
+	var downloadUrls = make(chan *ArchiveFile, 0)
 
-	years := []string{"2018"}
-	months := []string{"01"}
-	//days := []string{"01", "02", "03", "04", "05"}
-	days := []string{"01"}
+	years := []int{2018}
+	months := []int{01}
+	days := []int{30}
+
+	start := time.Now()
+
+	engine, err := xorm.NewEngine(database, connectionString)
+	if err != nil {
+		log.Fatalf("cannot setup connection. error: %v", err)
+	}
+
+	var archFiles []ArchiveFile
+	err = engine.Find(&archFiles)
+	if err != nil {
+		log.Fatalf("could not find archivefile")
+	}
+
+	log.Printf("found %v arch files", len(archFiles))
+
+	eg := errgroup.Group{}
+
+	for i := 0; i <= max_go_routines; i++ {
+		eg.Go(
+			func() error {
+				for u := range downloadUrls {
+					err := download(u)
+					if err != nil {
+						log.Fatalf("failed to download file. error: %v", err)
+					}
+				}
+				return nil
+			})
+	}
+
 	for _, y := range years {
 		for _, m := range months {
 			for _, d := range days {
-				for hour := 1; hour < 24; hour++ {
-					urls = append(urls, fmt.Sprintf(archiveUrlPattern, y, m, d, hour))
+				for hour := 0; hour < 24; hour++ {
+					downloadUrls <- &ArchiveFile{Year: y, Month: m, Day: d, Hour: hour}
 				}
 			}
 		}
 	}
 
-	start := time.Now()
-	for _, u := range urls {
-		err := download(u)
-		if err != nil {
-			log.Fatalf("failed to download file. error: %v", err)
-		}
-	}
+	close(downloadUrls)
+	eg.Wait()
 
 	log.Println("filtered event: ", len(allEvents))
 	log.Println("event count: ", eventCount)
 	log.Println("elapsed: ", time.Since(start))
 }
 
-func download(url string) error {
+func download(file *ArchiveFile) error {
+	url := fmt.Sprintf(archiveUrlPattern, file.Year, file.Month, file.Day, file.Hour)
 	log.Printf("downloading: %s\n", url)
+
 	res, err := http.Get(url)
 	if err != nil {
 		return errors.Wrap(err, "failed to download json file")
@@ -62,6 +94,7 @@ func download(url string) error {
 
 	buf := &bytes.Buffer{}
 	buf.ReadFrom(res.Body)
+	defer res.Body.Close()
 
 	zr, err := gzip.NewReader(buf)
 	if err != nil {
@@ -84,9 +117,10 @@ func download(url string) error {
 			}
 
 			eventCount++
-			//if ge.Type == "PushEvent" {
-			if ge.Repo.Id == repoId {
-				events = append(events, ge)
+			for _, v := range repoIds {
+				if ge.Repo.Id == v {
+					events = append(events, ge)
+				}
 			}
 		}
 
@@ -108,6 +142,9 @@ func download(url string) error {
 	}
 
 	engine, err := xorm.NewEngine(database, connectionString)
+	if err != nil {
+		log.Fatalf("failed to connect to database. error: %v", err)
+	}
 
 	var dbEvents []*GithubEvent
 	for _, e := range events {
@@ -122,6 +159,10 @@ func download(url string) error {
 		}
 	}
 
+	engine.Insert(file)
+
+	lock.Lock()
 	allEvents = append(allEvents, events...)
+	lock.Unlock()
 	return zr.Close()
 }

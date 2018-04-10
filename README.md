@@ -30,3 +30,11 @@ docker run -it --rm jbergknoff/postgresql-client postgresql://user:pass@host:543
 
 docker run -it --rm jbergknoff/postgresql-client postgresql://githubstats:githubstats@localhost:5432/githubstats
 ```
+
+Performance.
+~22s per day.
+
+22 * 365 = 8030s per year
+48180s for 6 years
+803min for 6 years
+13h for 6 years
