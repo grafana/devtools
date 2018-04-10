@@ -12,9 +12,9 @@ import (
 var (
 	repo = "grafana/grafana"
 	//connectionString = "user=githubstats password=githubstats host=localhost port=5432 dbname=githubstats sslmode=disable", "connection string"
-	connectionString = "./test.db"
+	connectionString = ""
 	apiToken         = ""
-	database         = "sqlite3"
+	database         = ""
 	repoIds          = []int64{15111821}
 )
 
@@ -69,8 +69,9 @@ type GithubEventJson struct {
 
 func main() {
 	flag.StringVar(&repo, "repo", "grafana/grafana", "name of the repo you want to process")
-	//flag.StringVar(&connectionString, "connectionString", "")
-	flag.StringVar(&apiToken, "apiToken", "default?", "")
+	flag.StringVar(&connectionString, "connectionString", "", "description")
+	flag.StringVar(&database, "database", "", "description")
+	flag.StringVar(&apiToken, "apiToken", "default?", "description")
 	flag.Parse()
 
 	err := initDatabase(database, connectionString)

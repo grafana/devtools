@@ -1,7 +1,7 @@
 all: deps build
 
-dev:
-	rm -rf test.db && go build -o main . && ./main
+test:
+	rm -rf test.db && go build -o main . && ./main -database="sqlite3" -connectionString="./test.db"
 
 prod:
 	go build -o main . && ./main
