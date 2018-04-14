@@ -27,37 +27,38 @@ var lock sync.Mutex
 
 const max_go_routines = 12
 
-func buildUrlsDownload(archFiles []*ArchiveFile, downloadChan chan *ArchiveFile) {
-	years := []int{2018}
-	months := []int{01}
-	days := []int{1}
+func buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) []*ArchiveFile {
+	var result []*ArchiveFile
 
-	for _, y := range years {
-		for _, m := range months {
-			for _, d := range days {
-				for hour := 0; hour < 24; hour++ {
+	for {
+		exit := false
+		for hour := 0; hour < 24; hour++ {
 
-					//TODO: use hashset to see if the file have been
-					// processed before. This looks like shiet
-					archivedFile := &ArchiveFile{Year: y, Month: m, Day: d, Hour: hour}
-					uni := true
-					for _, a := range archFiles {
-						if archivedFile.Equals(a) {
-							uni = false
-							break
-						}
-					}
-
-					if uni {
-						downloadChan <- archivedFile
-					}
-
+			// TODO: use hashset to see if the file have been
+			// processed before. This looks like shiet
+			archivedFile := &ArchiveFile{Year: startDate.Year(), Month: int(startDate.Month()), Day: startDate.Day(), Hour: hour}
+			for _, a := range archFiles {
+				if archivedFile.Equals(a) {
+					break
 				}
 			}
+
+			if startDate.Add(time.Hour).Unix() < stopDate.Unix() {
+				result = append(result, archivedFile)
+			} else {
+				exit = true
+				break
+			}
 		}
+
+		if exit {
+			break
+		}
+
+		startDate = startDate.AddDate(0, 0, 1)
 	}
 
-	close(downloadChan)
+	return result
 }
 
 func downloadEvents() {
@@ -93,7 +94,15 @@ func downloadEvents() {
 			})
 	}
 
-	buildUrlsDownload(archFiles, downloadUrls)
+	startDate := time.Date(2018, time.Month(1), 1, 1, 0, 0, 0, time.Local)
+	//stopDate := time.Now()
+	stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+
+	urls := buildUrlsDownload(archFiles, startDate, stopDate)
+	for _, u := range urls {
+		downloadUrls <- u
+	}
+	close(downloadUrls)
 
 	downloadGroup.Wait()
 
