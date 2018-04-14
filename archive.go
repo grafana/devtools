@@ -21,21 +21,47 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-//var archiveUrlPattern = `http://localhost:8100/%s-%s-%s-%d.json.gz`
-var archiveUrlPattern = `http://data.githubarchive.org/%d-%02d-%02d-%d.json.gz`
 var eventCount = 0
 var allEvents []GithubEventJson
 var lock sync.Mutex
 
 const max_go_routines = 12
 
-func downloadEvents() {
-	var downloadUrls = make(chan *ArchiveFile, 0)
-
+func buildUrlsDownload(archFiles []*ArchiveFile, downloadChan chan *ArchiveFile) {
 	years := []int{2018}
 	months := []int{01}
-	days := []int{28, 29, 30}
+	days := []int{1}
 
+	for _, y := range years {
+		for _, m := range months {
+			for _, d := range days {
+				for hour := 0; hour < 24; hour++ {
+
+					//TODO: use hashset to see if the file have been
+					// processed before. This looks like shiet
+					archivedFile := &ArchiveFile{Year: y, Month: m, Day: d, Hour: hour}
+					uni := true
+					for _, a := range archFiles {
+						if archivedFile.Equals(a) {
+							uni = false
+							break
+						}
+					}
+
+					if uni {
+						downloadChan <- archivedFile
+					}
+
+				}
+			}
+		}
+	}
+
+	close(downloadChan)
+}
+
+func downloadEvents() {
+	var downloadUrls = make(chan *ArchiveFile, 0)
 	start := time.Now()
 
 	engine, err := xorm.NewEngine(database, connectionString)
@@ -52,10 +78,10 @@ func downloadEvents() {
 
 	log.Printf("found %v arch files", len(archFiles))
 
-	eg := errgroup.Group{}
+	downloadGroup := errgroup.Group{}
 
 	for i := 0; i <= max_go_routines; i++ {
-		eg.Go(
+		downloadGroup.Go(
 			func() error {
 				for u := range downloadUrls {
 					err := download(u)
@@ -67,33 +93,9 @@ func downloadEvents() {
 			})
 	}
 
-	for _, y := range years {
-		for _, m := range months {
-			for _, d := range days {
-				for hour := 0; hour < 24; hour++ {
+	buildUrlsDownload(archFiles, downloadUrls)
 
-					//TODO: use hashset to see if the file have been
-					// processed before. This looks like shiet
-					af := &ArchiveFile{Year: y, Month: m, Day: d, Hour: hour}
-					uni := true
-					for _, a := range archFiles {
-						if af.Equals(a) {
-							uni = false
-							break
-						}
-					}
-
-					if uni {
-						downloadUrls <- af
-					}
-
-				}
-			}
-		}
-	}
-
-	close(downloadUrls)
-	eg.Wait()
+	downloadGroup.Wait()
 
 	log.Println("filtered event: ", len(allEvents))
 	log.Println("event count: ", eventCount)
@@ -101,7 +103,7 @@ func downloadEvents() {
 }
 
 func download(file *ArchiveFile) error {
-	url := fmt.Sprintf(archiveUrlPattern, file.Year, file.Month, file.Day, file.Hour)
+	url := fmt.Sprintf(archiveUrl, file.Year, file.Month, file.Day, file.Hour)
 	log.Printf("downloading: %s\n", url)
 
 	res, err := http.Get(url)

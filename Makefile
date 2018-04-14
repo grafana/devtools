@@ -1,10 +1,13 @@
 all: deps build
 
 test:
-	rm -rf test.db && go build -o main . && ./main -database="sqlite3" -connectionString="./test.db"
+	rm -rf test.db
+	go build -o main .
+	./main -database="sqlite3" -connectionString="./test.db" -archiveUrl="http://localhost:8100/%d-%02d-%02d-%d.json.gz"
 
 prod:
-	go build -o main . && ./main
+	go build -o main .
+	./main -database="sqlite3" -connectionString="./test.db" -archiveUrl="http://data.githubarchive.org/%d-%02d-%02d-%d.json.gz"
 
 download-arch-files:
 	cd archive
