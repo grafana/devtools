@@ -30,8 +30,8 @@ const max_go_routines = 12
 func buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) []*ArchiveFile {
 	var result []*ArchiveFile
 
-	for {
-		exit := false
+	keepSearching := true
+	for keepSearching {
 		for hour := 0; hour < 24; hour++ {
 
 			// TODO: use hashset to see if the file have been
@@ -43,16 +43,14 @@ func buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) 
 				}
 			}
 
-			if startDate.Add(time.Hour).Unix() < stopDate.Unix() {
-				result = append(result, archivedFile)
-			} else {
-				exit = true
+			// stop searching if startdate is newer then stopdate
+			if startDate.Add(time.Duration(int(time.Hour)*hour)).Unix() > stopDate.Unix() {
+				fmt.Printf("startDate: %v stopDate: %v comp: %v\n", startDate.Add(time.Hour).Unix(), stopDate.Unix(), startDate.Add(time.Hour).Unix() > stopDate.Unix())
+				keepSearching = false
 				break
 			}
-		}
 
-		if exit {
-			break
+			result = append(result, archivedFile)
 		}
 
 		startDate = startDate.AddDate(0, 0, 1)
@@ -96,7 +94,8 @@ func downloadEvents() {
 
 	startDate := time.Date(2018, time.Month(1), 1, 1, 0, 0, 0, time.Local)
 	//stopDate := time.Now()
-	stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+	//stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+	stopDate := time.Date(2018, time.Month(1), 2, 12, 0, 0, 0, time.Local)
 
 	urls := buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
