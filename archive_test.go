@@ -7,35 +7,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var startDate = time.Date(2018, time.Month(1), 1, 1, 0, 0, 0, time.Local)
+var startDate = time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.Local)
 
 func TestGenerateUrlsFor6Hours(t *testing.T) {
 	var archivedFiles []*ArchiveFile
 
-	stopDate := fakeStopDate(1, 6)
-	result := buildUrlsDownload(archivedFiles, startDate, stopDate)
+	testCases := []struct {
+		stopDate        time.Time
+		expecedUrlCount int
+	}{
+		{stopDate: fakeStopDate(1, 6), expecedUrlCount: 6},
+		{stopDate: fakeStopDate(2, 0), expecedUrlCount: 24},
+		{stopDate: fakeStopDate(2, 12), expecedUrlCount: 36},
+	}
 
-	assert.Equal(t, len(result), 6, "failure")
-}
-
-func TestGenerateUrlsForOneDay(t *testing.T) {
-	var archivedFiles []*ArchiveFile
-
-	stopDate := fakeStopDate(2, 0)
-
-	result := buildUrlsDownload(archivedFiles, startDate, stopDate)
-
-	assert.Equal(t, len(result), 24, "failure")
-}
-
-func TestGenerateUrlsForTwoAndAHalfDay(t *testing.T) {
-	var archivedFiles []*ArchiveFile
-
-	stopDate := fakeStopDate(2, 12)
-
-	result := buildUrlsDownload(archivedFiles, startDate, stopDate)
-
-	assert.Equal(t, len(result), 36, "failure")
+	for _, tc := range testCases {
+		result := buildUrlsDownload(archivedFiles, startDate, tc.stopDate)
+		assert.Equal(t, tc.expecedUrlCount, len(result), "failure")
+	}
 }
 
 func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
@@ -49,11 +38,19 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 			Hour:  i})
 	}
 
-	stopDate := fakeStopDate(1, 0)
+	stopDate := fakeStopDate(1, 12)
 
-	result := buildUrlsDownload(archivedFiles, startDate, stopDate)
+	t.Run("gap before start date", func(t *testing.T) {
+		result := buildUrlsDownload(archivedFiles, startDate, stopDate)
+		assert.Equal(t, 12, len(result), "failure")
+	})
 
-	assert.Equal(t, len(result), 0, "failure")
+	t.Run("gap after start date", func(t *testing.T) {
+		startDate = startDate.AddDate(0, 0, -1)
+		result := buildUrlsDownload(archivedFiles, startDate, stopDate)
+
+		assert.Equal(t, 36, len(result), "failure")
+	})
 }
 
 func fakeStopDate(days, hours int) time.Time {
