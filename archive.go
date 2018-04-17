@@ -27,6 +27,11 @@ var lock sync.Mutex
 
 const max_go_routines = 12
 
+var dlTotal int64
+var dlCount int64
+var pTotal int64
+var pCount int64
+
 func buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) []*ArchiveFile {
 	var result []*ArchiveFile
 
@@ -89,7 +94,8 @@ func downloadEvents() {
 
 	startDate := time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.Local)
 	//stopDate := time.Now()
-	stopDate := time.Date(2018, time.Month(1), 2, 12, 0, 0, 0, time.Local)
+	//stopDate := time.Date(2018, time.Month(1), 3, 12, 0, 0, 0, time.Local)
+	stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
 
 	urls := buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
@@ -102,9 +108,14 @@ func downloadEvents() {
 	log.Println("filtered event: ", len(allEvents))
 	log.Println("event count: ", eventCount)
 	log.Println("elapsed: ", time.Since(start))
+
+	log.Println("avg dl ", time.Duration(dlTotal/dlCount).String())
+	log.Println("avg p ", time.Duration(pTotal/pCount).String())
 }
 
 func download(file *ArchiveFile) error {
+	start := time.Now()
+
 	url := fmt.Sprintf(archiveUrl, file.Year, file.Month, file.Day, file.Hour)
 	log.Printf("downloading: %s\n", url)
 
@@ -116,6 +127,11 @@ func download(file *ArchiveFile) error {
 	buf := &bytes.Buffer{}
 	buf.ReadFrom(res.Body)
 	defer res.Body.Close()
+
+	dlTotal += int64(time.Now().Sub(start))
+	dlCount += 1
+
+	pStart := time.Now()
 
 	zr, err := gzip.NewReader(buf)
 	if err != nil {
@@ -179,6 +195,9 @@ func download(file *ArchiveFile) error {
 	}
 
 	engine.Insert(file)
+
+	pTotal += int64(time.Now().Sub(pStart))
+	pCount += 1
 
 	lock.Lock()
 	allEvents = append(allEvents, events...)
