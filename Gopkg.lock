@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/bitly/go-simplejson"
-  packages = ["."]
-  revision = "aabad6e819789e569bd6aabf444c935aa9ba1e44"
-  version = "v0.5.0"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -45,6 +39,7 @@
 [[projects]]
   name = "github.com/grafana/grafana"
   packages = [
+    "pkg/components/simplejson",
     "pkg/log",
     "pkg/services/sqlstore/migrator",
     "pkg/util"
@@ -142,6 +137,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e26f13323958ab5af524dd524dea7cbbe089b8366f51034698954f46791b3056"
+  inputs-digest = "464f9d910ece26797e90687842e1c2709fe4c5f6d4f0c637a22f81cb49301289"
   solver-name = "gps-cdcl"
   solver-version = 1

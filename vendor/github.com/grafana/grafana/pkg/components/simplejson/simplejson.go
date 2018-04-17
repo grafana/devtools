@@ -1,6 +1,7 @@
 package simplejson
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"log"
@@ -13,6 +14,22 @@ func Version() string {
 
 type Json struct {
 	data interface{}
+}
+
+func (j *Json) FromDB(data []byte) error {
+	j.data = make(map[string]interface{})
+
+	dec := json.NewDecoder(bytes.NewBuffer(data))
+	dec.UseNumber()
+	return dec.Decode(&j.data)
+}
+
+func (j *Json) ToDB() ([]byte, error) {
+	if j == nil || j.data == nil {
+		return nil, nil
+	}
+
+	return j.Encode()
 }
 
 // NewJson returns a pointer to a new `Json` object
@@ -31,6 +48,11 @@ func New() *Json {
 	return &Json{
 		data: make(map[string]interface{}),
 	}
+}
+
+// New returns a pointer to a new, empty `Json` object
+func NewFromAny(data interface{}) *Json {
+	return &Json{data: data}
 }
 
 // Interface returns the underlying data

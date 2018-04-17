@@ -49,7 +49,7 @@ func initDatabase(dbType string, connectionString string) error {
 			{Name: "type", Type: migrator.DB_NVarchar, Length: 255},
 			{Name: "repo_id", Type: migrator.DB_BigInt},
 			{Name: "created_at", Type: migrator.DB_DateTime},
-			//{Name: "payload", Type: migrator.DB_Text},
+			{Name: "payload", Type: migrator.DB_Text},
 		},
 	}
 

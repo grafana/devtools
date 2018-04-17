@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	simplejson "github.com/bitly/go-simplejson"
+	"github.com/grafana/grafana/pkg/components/simplejson"
 )
 
 type ArchiveFile struct {
@@ -32,7 +32,7 @@ type GithubEvent struct {
 	Type      string
 	RepoId    int64
 	CreatedAt time.Time
-	//Payload *simplejson.Json
+	Payload   *simplejson.Json
 }
 
 func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
@@ -48,7 +48,7 @@ func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
 		Type:      gej.Type,
 		RepoId:    repoId,
 		CreatedAt: gej.CreatedAt,
-		//Payload: gej.Payload,
+		Payload:   gej.Payload,
 	}
 }
 

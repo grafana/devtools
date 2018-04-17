@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,10 +79,13 @@ func TestWritingArchiveFile(t *testing.T) {
 func TestWritingToDatabase(t *testing.T) {
 	var eventsToWrite []*GithubEvent
 
-	//json, _ := simplejson.NewJson([]byte(`{"field": "value"}`))
+	json, err := simplejson.NewJson([]byte(`{"field": "value"}`))
+	if err != nil {
+		t.Fatalf("failed to parse json. error: %v", err)
+	}
 	for i := 1; i < 50; i++ {
 		eventsToWrite = append(eventsToWrite, &GithubEvent{
-			//Payload: json,
+			Payload:   json,
 			RepoId:    1,
 			CreatedAt: time.Now(),
 			Type:      "fakeEvent",
@@ -89,20 +93,20 @@ func TestWritingToDatabase(t *testing.T) {
 		})
 	}
 
-	err := initDatabase("sqlite3", "./test.db")
+	err = initDatabase("sqlite3", "./test.db")
 	if err != nil {
-		log.Fatalf("failed to connect to database. error: %v", err)
+		t.Fatalf("failed to connect to database. error: %v", err)
 	}
 
 	engine, err := xorm.NewEngine("sqlite3", "./test.db")
 	engine.SetColumnMapper(core.GonicMapper{})
 	if err != nil {
-		log.Fatalf("failed to connect to database. error: %v", err)
+		t.Fatalf("failed to connect to database. error: %v", err)
 	}
 
 	err = insertIntoDatabase(engine, eventsToWrite)
 	if err != nil {
-		log.Fatalf("failed to connect to database. error: %v", err)
+		t.Fatalf("failed to connect to database. error: %v", err)
 	}
 }
 
