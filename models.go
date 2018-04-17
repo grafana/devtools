@@ -28,10 +28,10 @@ type Repo struct {
 }
 
 type GithubEvent struct {
-	ID     int64
-	Type   string
-	RepoId int64
-	Date   time.Time
+	ID        int64
+	Type      string
+	RepoId    int64
+	CreatedAt time.Time
 	//Payload *simplejson.Json
 }
 
@@ -44,17 +44,18 @@ func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
 	}
 
 	return &GithubEvent{
-		ID:     id,
-		Type:   gej.Type,
-		RepoId: repoId,
-		Date:   time.Now(),
+		ID:        id,
+		Type:      gej.Type,
+		RepoId:    repoId,
+		CreatedAt: gej.CreatedAt,
 		//Payload: gej.Payload,
 	}
 }
 
 type GithubEventJson struct {
-	ID      string           `json:"id"`
-	Type    string           `json:"type"`
-	Repo    *Repo            `json:"repo"`
-	Payload *simplejson.Json `json:"payload"`
+	ID        string           `json:"id"`
+	Type      string           `json:"type"`
+	Repo      *Repo            `json:"repo"`
+	Payload   *simplejson.Json `json:"payload"`
+	CreatedAt time.Time        `json:"created_at"`
 }

@@ -82,10 +82,10 @@ func TestWritingToDatabase(t *testing.T) {
 	for i := 1; i < 50; i++ {
 		eventsToWrite = append(eventsToWrite, &GithubEvent{
 			//Payload: json,
-			RepoId: 1,
-			Date:   time.Now(),
-			Type:   "fakeEvent",
-			ID:     int64(i),
+			RepoId:    1,
+			CreatedAt: time.Now(),
+			Type:      "fakeEvent",
+			ID:        int64(i),
 		})
 	}
 
