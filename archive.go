@@ -89,7 +89,6 @@ func downloadEvents() {
 
 	startDate := time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.Local)
 	//stopDate := time.Now()
-	//stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
 	stopDate := time.Date(2018, time.Month(1), 2, 12, 0, 0, 0, time.Local)
 
 	urls := buildUrlsDownload(archFiles, startDate, stopDate)
@@ -174,13 +173,10 @@ func download(file *ArchiveFile) error {
 		dbEvents = append(dbEvents, e.CreateGithubEvent())
 	}
 
-	//insert with a batch of 100 rows
-	for i := 0; i > len(dbEvents); i += 100 {
-		_, err = engine.Insert(dbEvents[i : i+100])
-		if err != nil {
-			return errors.Wrap(err, "inserting rows to database")
-		}
-	}
+	// err = insertIntoDatabase(engine, dbEvents)
+	// if err != nil {
+	// 	log.Fatalf("failed to connect to database. error %v", err)
+	// }
 
 	engine.Insert(file)
 
@@ -188,4 +184,26 @@ func download(file *ArchiveFile) error {
 	allEvents = append(allEvents, events...)
 	lock.Unlock()
 	return zr.Close()
+}
+
+func insertIntoDatabase(engine *xorm.Engine, events []*GithubEvent) error {
+	fmt.Println("inserting events", len(events))
+	//insert with a batch of 100 rows
+	len := len(events)
+
+	i := 0
+	//for i := 0; i < len; i += 100 {
+	upper := i + 100
+	if len-i < 100 {
+		upper = len - i
+	}
+
+	log.Printf("events: %d %d", i, upper)
+	_, err := engine.Insert(events[i:upper])
+	if err != nil {
+		return errors.Wrap(err, "inserting rows to database")
+	}
+	//}
+
+	return nil
 }

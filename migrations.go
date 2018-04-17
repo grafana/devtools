@@ -15,7 +15,7 @@ func initDatabase(dbType string, connectionString string) error {
 
 	mig := migrator.NewMigrator(x)
 
-	migrationLogV1 := migrator.Table{
+	migrationLog := migrator.Table{
 		Name: "migration_log",
 		Columns: []*migrator.Column{
 			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true, IsAutoIncrement: true},
@@ -27,7 +27,7 @@ func initDatabase(dbType string, connectionString string) error {
 		},
 	}
 
-	mig.AddMigration("create migration_log table", migrator.NewAddTableMigration(migrationLogV1))
+	mig.AddMigration("create migration_log table", migrator.NewAddTableMigration(migrationLog))
 
 	archiveFile := migrator.Table{
 		Name: "archive_file",
@@ -45,10 +45,11 @@ func initDatabase(dbType string, connectionString string) error {
 	githubEvent := migrator.Table{
 		Name: "github_event",
 		Columns: []*migrator.Column{
-			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true},
-			{Name: "type", Type: migrator.DB_Text},
+			{Name: "id", Type: migrator.DB_BigInt},
+			{Name: "type", Type: migrator.DB_NVarchar, Length: 255},
 			{Name: "repo_id", Type: migrator.DB_BigInt},
-			{Name: "date", Type: migrator.DB_Text},
+			{Name: "date", Type: migrator.DB_DateTime},
+			{Name: "payload", Type: migrator.DB_Text},
 		},
 	}
 

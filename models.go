@@ -3,6 +3,8 @@ package main
 import (
 	"strconv"
 	"time"
+
+	simplejson "github.com/bitly/go-simplejson"
 )
 
 type ArchiveFile struct {
@@ -26,10 +28,11 @@ type Repo struct {
 }
 
 type GithubEvent struct {
-	ID     int64
-	Type   string
-	RepoId int64
-	Date   time.Time
+	ID      int64
+	Type    string
+	RepoId  int64
+	Date    time.Time
+	Payload *simplejson.Json
 }
 
 func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
@@ -41,15 +44,17 @@ func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
 	}
 
 	return &GithubEvent{
-		ID:     id,
-		Type:   gej.Type,
-		RepoId: repoId,
-		Date:   time.Now(),
+		ID:      id,
+		Type:    gej.Type,
+		RepoId:  repoId,
+		Date:    time.Now(),
+		Payload: gej.Payload,
 	}
 }
 
 type GithubEventJson struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
-	Repo *Repo  `json:"repo"`
+	ID      string           `json:"id"`
+	Type    string           `json:"type"`
+	Repo    *Repo            `json:"repo"`
+	Payload *simplejson.Json `json:"payload"`
 }

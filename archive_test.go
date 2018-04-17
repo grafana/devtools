@@ -1,9 +1,13 @@
 package main
 
 import (
+	"log"
 	"testing"
 	"time"
 
+	simplejson "github.com/bitly/go-simplejson"
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,6 +55,36 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 
 		assert.Equal(t, 36, len(result), "failure")
 	})
+}
+
+func TestWritingToDatabase(t *testing.T) {
+	t.Skip()
+
+	var eventsToWrite []*GithubEvent
+
+	for i := 0; i < 50; i++ {
+		eventsToWrite = append(eventsToWrite, &GithubEvent{
+			Payload: simplejson.New(),
+			RepoId:  1,
+			Type:    "fakeEvent",
+			ID:      int64(i),
+		})
+	}
+
+	err := initDatabase("sqlite3", "./test.db")
+	if err != nil {
+		log.Fatalf("failed to connect to database. error: %v", err)
+	}
+
+	engine, err := xorm.NewEngine("sqlite3", "./test.db")
+	engine.SetColumnMapper(core.GonicMapper{})
+	if err != nil {
+		log.Fatalf("failed to connect to database. error: %v", err)
+	}
+
+	println("inserting", eventsToWrite)
+
+	insertIntoDatabase(engine, eventsToWrite)
 }
 
 func fakeStopDate(days, hours int) time.Time {
