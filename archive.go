@@ -173,10 +173,10 @@ func download(file *ArchiveFile) error {
 		dbEvents = append(dbEvents, e.CreateGithubEvent())
 	}
 
-	// err = insertIntoDatabase(engine, dbEvents)
-	// if err != nil {
-	// 	log.Fatalf("failed to connect to database. error %v", err)
-	// }
+	err = insertIntoDatabase(engine, dbEvents)
+	if err != nil {
+		log.Fatalf("failed to connect to database. error %v", err)
+	}
 
 	engine.Insert(file)
 
@@ -187,23 +187,19 @@ func download(file *ArchiveFile) error {
 }
 
 func insertIntoDatabase(engine *xorm.Engine, events []*GithubEvent) error {
-	fmt.Println("inserting events", len(events))
-	//insert with a batch of 100 rows
-	len := len(events)
 
-	i := 0
-	//for i := 0; i < len; i += 100 {
-	upper := i + 100
-	if len-i < 100 {
-		upper = len - i
-	}
+	// we could batch this if we need to write things faster.
+	for _, e := range events {
+		_, err := engine.Exec("DELETE FROM github_event WHERE ID = ? ", e.ID)
+		if err != nil {
+			return err
+		}
 
-	log.Printf("events: %d %d", i, upper)
-	_, err := engine.Insert(events[i:upper])
-	if err != nil {
-		return errors.Wrap(err, "inserting rows to database")
+		_, err = engine.Insert(e)
+		if err != nil {
+			return err
+		}
 	}
-	//}
 
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
@@ -57,17 +56,36 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 	})
 }
 
-func TestWritingToDatabase(t *testing.T) {
-	t.Skip()
+func TestWritingArchiveFile(t *testing.T) {
+	file := &ArchiveFile{
+		Year:  2018,
+		Month: 1,
+		Day:   1,
+		Hour:  1,
+	}
 
+	err := initDatabase("sqlite3", "./test.db")
+	if err != nil {
+		log.Fatalf("failed to connect to database. error: %v", err)
+	}
+
+	engine, err := xorm.NewEngine("sqlite3", "./test.db")
+	engine.SetColumnMapper(core.GonicMapper{})
+
+	engine.Insert(file)
+}
+
+func TestWritingToDatabase(t *testing.T) {
 	var eventsToWrite []*GithubEvent
 
-	for i := 0; i < 50; i++ {
+	//json, _ := simplejson.NewJson([]byte(`{"field": "value"}`))
+	for i := 1; i < 50; i++ {
 		eventsToWrite = append(eventsToWrite, &GithubEvent{
-			Payload: simplejson.New(),
-			RepoId:  1,
-			Type:    "fakeEvent",
-			ID:      int64(i),
+			//Payload: json,
+			RepoId: 1,
+			Date:   time.Now(),
+			Type:   "fakeEvent",
+			ID:     int64(i),
 		})
 	}
 
@@ -82,9 +100,10 @@ func TestWritingToDatabase(t *testing.T) {
 		log.Fatalf("failed to connect to database. error: %v", err)
 	}
 
-	println("inserting", eventsToWrite)
-
-	insertIntoDatabase(engine, eventsToWrite)
+	err = insertIntoDatabase(engine, eventsToWrite)
+	if err != nil {
+		log.Fatalf("failed to connect to database. error: %v", err)
+	}
 }
 
 func fakeStopDate(days, hours int) time.Time {
