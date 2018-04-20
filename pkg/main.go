@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 
 	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
@@ -24,7 +25,15 @@ func main() {
 	flag.StringVar(&archiveUrl, "archiveUrl", "default?", "description")
 	flag.Parse()
 
-	err := initDatabase(database, connectionString)
+	f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	defer f.Close()
+
+	log.SetOutput(f)
+
+	err = initDatabase(database, connectionString)
 	if err != nil {
 		log.Fatalf("migration failed. error: %v", err)
 	}
