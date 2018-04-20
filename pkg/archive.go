@@ -148,7 +148,7 @@ func download(file *ArchiveFile) error {
 
 		for scanner.Scan() {
 			ge := GithubEventJson{}
-			err := json.Unmarshal([]byte(scanner.Text()), &ge)
+			err := json.Unmarshal(scanner.Bytes(), &ge)
 			if err != nil {
 				return errors.Wrap(err, "parsing json")
 			}
