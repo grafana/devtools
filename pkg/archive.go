@@ -92,10 +92,10 @@ func downloadEvents() {
 			})
 	}
 
-	startDate := time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.Local)
-	//stopDate := time.Now()
+	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.Local)
+	stopDate := time.Now()
 	//stopDate := time.Date(2018, time.Month(1), 3, 12, 0, 0, 0, time.Local)
-	stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+	//stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
 
 	urls := buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
@@ -144,7 +144,7 @@ func download(file *ArchiveFile) error {
 		zr.Multistream(false)
 
 		scanner := bufio.NewScanner(zr)
-		scanner.Buffer([]byte(""), 1024*1024) //increase buffer limit
+		scanner.Buffer([]byte(""), 2048*2048) //increase buffer limit
 
 		for scanner.Scan() {
 			ge := GithubEventJson{}
