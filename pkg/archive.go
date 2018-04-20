@@ -25,7 +25,7 @@ var eventCount = 0
 var allEvents []GithubEventJson
 var lock sync.Mutex
 
-const max_go_routines = 12
+const max_go_routines = 2
 
 var dlTotal int64
 var dlCount int64
@@ -93,9 +93,9 @@ func downloadEvents() {
 	}
 
 	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.Local)
-	stopDate := time.Now()
+	//stopDate := time.Now()
 	//stopDate := time.Date(2018, time.Month(1), 3, 12, 0, 0, 0, time.Local)
-	//stopDate := time.Date(2018, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+	stopDate := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.Local)
 
 	urls := buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
@@ -140,6 +140,28 @@ func download(file *ArchiveFile) error {
 
 	var events []GithubEventJson
 
+	lines := make(chan []byte, 0)
+	eg := errgroup.Group{}
+	for i := 0; i <= 6; i++ {
+		eg.Go(func() error {
+			for line := range lines {
+				ge := GithubEventJson{}
+				err := json.Unmarshal(line, &ge)
+				if err != nil {
+					return errors.Wrap(err, "parsing json")
+				}
+
+				eventCount++
+				for _, v := range repoIds {
+					if ge.Repo.ID == v {
+						events = append(events, ge)
+					}
+				}
+			}
+			return nil
+		})
+	}
+
 	for {
 		zr.Multistream(false)
 
@@ -147,18 +169,7 @@ func download(file *ArchiveFile) error {
 		scanner.Buffer([]byte(""), 2048*2048) //increase buffer limit
 
 		for scanner.Scan() {
-			ge := GithubEventJson{}
-			err := json.Unmarshal(scanner.Bytes(), &ge)
-			if err != nil {
-				return errors.Wrap(err, "parsing json")
-			}
-
-			eventCount++
-			for _, v := range repoIds {
-				if ge.Repo.ID == v {
-					events = append(events, ge)
-				}
-			}
+			lines <- []byte(scanner.Text()) //why does this work? :/
 		}
 
 		err := scanner.Err()
@@ -176,6 +187,13 @@ func download(file *ArchiveFile) error {
 		if err == io.EOF {
 			break
 		}
+	}
+
+	close(lines)
+
+	err = eg.Wait()
+	if err != nil {
+		log.Fatalf("failed waiting. error: %v", err)
 	}
 
 	engine, err := xorm.NewEngine(database, connectionString)
