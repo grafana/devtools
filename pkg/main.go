@@ -38,5 +38,6 @@ func main() {
 		log.Fatalf("migration failed. error: %v", err)
 	}
 
-	downloadEvents()
+	ad := &ArchiveDownloader{}
+	ad.downloadEvents()
 }

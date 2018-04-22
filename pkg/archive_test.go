@@ -15,6 +15,7 @@ var startDate = time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.Local)
 
 func TestGenerateUrlsFor6Hours(t *testing.T) {
 	var archivedFiles []*ArchiveFile
+	ad := &ArchiveDownloader{}
 
 	testCases := []struct {
 		stopDate        time.Time
@@ -26,13 +27,14 @@ func TestGenerateUrlsFor6Hours(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := buildUrlsDownload(archivedFiles, startDate, tc.stopDate)
+		result := ad.buildUrlsDownload(archivedFiles, startDate, tc.stopDate)
 		assert.Equal(t, tc.expecedUrlCount, len(result), "failure")
 	}
 }
 
 func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 	var archivedFiles []*ArchiveFile
+	ad := &ArchiveDownloader{}
 
 	for i := 0; i < 12; i++ {
 		archivedFiles = append(archivedFiles, &ArchiveFile{
@@ -45,13 +47,13 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 	stopDate := fakeStopDate(1, 12)
 
 	t.Run("gap before start date", func(t *testing.T) {
-		result := buildUrlsDownload(archivedFiles, startDate, stopDate)
+		result := ad.buildUrlsDownload(archivedFiles, startDate, stopDate)
 		assert.Equal(t, 12, len(result), "failure")
 	})
 
 	t.Run("gap after start date", func(t *testing.T) {
 		startDate = startDate.AddDate(0, 0, -1)
-		result := buildUrlsDownload(archivedFiles, startDate, stopDate)
+		result := ad.buildUrlsDownload(archivedFiles, startDate, stopDate)
 
 		assert.Equal(t, 36, len(result), "failure")
 	})
@@ -77,6 +79,8 @@ func TestWritingArchiveFile(t *testing.T) {
 }
 
 func TestWritingToDatabase(t *testing.T) {
+	ad := &ArchiveDownloader{}
+
 	var eventsToWrite []*GithubEvent
 
 	json, err := simplejson.NewJson([]byte(`{"field": "value"}`))
@@ -104,7 +108,7 @@ func TestWritingToDatabase(t *testing.T) {
 		t.Fatalf("failed to connect to database. error: %v", err)
 	}
 
-	err = insertIntoDatabase(engine, eventsToWrite)
+	err = ad.insertIntoDatabase(engine, eventsToWrite)
 	if err != nil {
 		t.Fatalf("failed to connect to database. error: %v", err)
 	}

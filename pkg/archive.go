@@ -25,14 +25,14 @@ var eventCount = 0
 var allEvents []GithubEventJson
 var lock sync.Mutex
 
-const max_go_routines = 2
+const max_go_routines = 4
 
 var dlTotal int64
 var dlCount int64
 var pTotal int64
 var pCount int64
 
-func buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) []*ArchiveFile {
+func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) []*ArchiveFile {
 	var result []*ArchiveFile
 
 	for startDate.Unix() < stopDate.Unix() {
@@ -59,7 +59,10 @@ func buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) 
 	return result
 }
 
-func downloadEvents() {
+type ArchiveDownloader struct {
+}
+
+func (ad *ArchiveDownloader) downloadEvents() {
 	var downloadUrls = make(chan *ArchiveFile, 0)
 	start := time.Now()
 
@@ -83,9 +86,9 @@ func downloadEvents() {
 		downloadGroup.Go(
 			func() error {
 				for u := range downloadUrls {
-					err := download(u)
+					err := ad.download(u)
 					if err != nil {
-						log.Fatalf("failed to download file. error: %v", err)
+						log.Printf("error: failed to download file. error: %v\n", err)
 					}
 				}
 				return nil
@@ -93,11 +96,11 @@ func downloadEvents() {
 	}
 
 	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.Local)
-	//stopDate := time.Now()
+	stopDate := time.Now()
 	//stopDate := time.Date(2018, time.Month(1), 3, 12, 0, 0, 0, time.Local)
-	stopDate := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+	//stopDate := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.Local)
 
-	urls := buildUrlsDownload(archFiles, startDate, stopDate)
+	urls := ad.buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
 		downloadUrls <- u
 	}
@@ -113,11 +116,9 @@ func downloadEvents() {
 	log.Println("avg p ", time.Duration(pTotal/pCount).String())
 }
 
-func download(file *ArchiveFile) error {
+func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	start := time.Now()
-
 	url := fmt.Sprintf(archiveUrl, file.Year, file.Month, file.Day, file.Hour)
-	log.Printf("downloading: %s\n", url)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -207,7 +208,7 @@ func download(file *ArchiveFile) error {
 		dbEvents = append(dbEvents, e.CreateGithubEvent())
 	}
 
-	err = insertIntoDatabase(engine, dbEvents)
+	err = ad.insertIntoDatabase(engine, dbEvents)
 	if err != nil {
 		log.Fatalf("failed to connect to database. error %v", err)
 	}
@@ -223,7 +224,7 @@ func download(file *ArchiveFile) error {
 	return zr.Close()
 }
 
-func insertIntoDatabase(engine *xorm.Engine, events []*GithubEvent) error {
+func (ad *ArchiveDownloader) insertIntoDatabase(engine *xorm.Engine, events []*GithubEvent) error {
 
 	// we could batch this if we need to write things faster.
 	for _, e := range events {
