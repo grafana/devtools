@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 
 	_ "github.com/lib/pq"
@@ -60,20 +59,21 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, startDa
 }
 
 type ArchiveDownloader struct {
+	engine *xorm.Engine
+}
+
+func NewArchiveDownloader(engine *xorm.Engine) *ArchiveDownloader {
+	return &ArchiveDownloader{
+		engine: engine,
+	}
 }
 
 func (ad *ArchiveDownloader) downloadEvents() {
 	var downloadUrls = make(chan *ArchiveFile, 0)
 	start := time.Now()
 
-	engine, err := xorm.NewEngine(database, connectionString)
-	engine.SetColumnMapper(core.GonicMapper{})
-	if err != nil {
-		log.Fatalf("cannot setup connection. error: %v", err)
-	}
-
 	var archFiles []*ArchiveFile
-	err = engine.Find(&archFiles)
+	err := ad.engine.Find(&archFiles)
 	if err != nil {
 		log.Fatalf("could not find archivefile. error: %v", err)
 	}
@@ -88,7 +88,7 @@ func (ad *ArchiveDownloader) downloadEvents() {
 				for u := range downloadUrls {
 					err := ad.download(u)
 					if err != nil {
-						log.Printf("error: failed to download file. error: %v\n", err)
+						log.Printf("error: %+v failed to download file. error: %v\n", u, err)
 					}
 				}
 				return nil
@@ -111,9 +111,8 @@ func (ad *ArchiveDownloader) downloadEvents() {
 	log.Println("filtered event: ", len(allEvents))
 	log.Println("event count: ", eventCount)
 	log.Println("elapsed: ", time.Since(start))
-
-	log.Println("avg dl ", time.Duration(dlTotal/dlCount).String())
-	log.Println("avg p ", time.Duration(pTotal/pCount).String())
+	log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
+	log.Println("avg process  :", time.Duration(pTotal/pCount).String())
 }
 
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
@@ -192,15 +191,8 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 	close(lines)
 
-	err = eg.Wait()
-	if err != nil {
-		log.Fatalf("failed waiting. error: %v", err)
-	}
-
-	engine, err := xorm.NewEngine(database, connectionString)
-	engine.SetColumnMapper(core.GonicMapper{})
-	if err != nil {
-		log.Fatalf("failed to connect to database. error: %v", err)
+	if eg.Wait() != nil {
+		return err //log.Fatalf("failed waiting. error: %v", err)
 	}
 
 	var dbEvents []*GithubEvent
@@ -208,12 +200,12 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 		dbEvents = append(dbEvents, e.CreateGithubEvent())
 	}
 
-	err = ad.insertIntoDatabase(engine, dbEvents)
+	err = ad.insertIntoDatabase(dbEvents)
 	if err != nil {
 		log.Fatalf("failed to connect to database. error %v", err)
 	}
 
-	engine.Insert(file)
+	ad.engine.Insert(file)
 
 	pTotal += int64(time.Now().Sub(pStart))
 	pCount += 1
@@ -224,16 +216,16 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	return zr.Close()
 }
 
-func (ad *ArchiveDownloader) insertIntoDatabase(engine *xorm.Engine, events []*GithubEvent) error {
+func (ad *ArchiveDownloader) insertIntoDatabase(events []*GithubEvent) error {
 
 	// we could batch this if we need to write things faster.
 	for _, e := range events {
-		_, err := engine.Exec("DELETE FROM github_event WHERE ID = ? ", e.ID)
+		_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", e.ID)
 		if err != nil {
 			return err
 		}
 
-		_, err = engine.Insert(e)
+		_, err = ad.engine.Insert(e)
 		if err != nil {
 			return err
 		}

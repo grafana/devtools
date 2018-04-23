@@ -47,8 +47,8 @@ func main() {
 		log.Fatalf("failed to create engine. error: %v", err)
 	}
 
-	aggregate(x)
+	//aggregate(x)
 
-	// ad := &ArchiveDownloader{}
-	// ad.downloadEvents()
+	ad := NewArchiveDownloader(x)
+	ad.downloadEvents()
 }
