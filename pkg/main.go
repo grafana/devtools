@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/go-xorm/core"
+	"github.com/go-xorm/xorm"
 	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
 
@@ -38,6 +40,15 @@ func main() {
 		log.Fatalf("migration failed. error: %v", err)
 	}
 
-	ad := &ArchiveDownloader{}
-	ad.downloadEvents()
+	x, err := xorm.NewEngine(database, connectionString)
+	x.SetColumnMapper(core.GonicMapper{})
+	if err != nil {
+		//return err
+		log.Fatalf("failed to create engine. error: %v", err)
+	}
+
+	aggregate(x)
+
+	// ad := &ArchiveDownloader{}
+	// ad.downloadEvents()
 }
