@@ -20,11 +20,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var eventCount = 0
 var allEvents []GithubEventJson
 var lock sync.Mutex
 
 const max_go_routines = 4
+const max_go_process = 6
 
 var dlTotal int64
 var dlCount int64
@@ -106,10 +106,12 @@ func (ad *ArchiveDownloader) downloadEvents() {
 	}
 	close(downloadUrls)
 
-	downloadGroup.Wait()
+	err = downloadGroup.Wait()
+	if err != nil {
+		log.Fatalf("error: %+v", err)
+	}
 
 	log.Println("filtered event: ", len(allEvents))
-	log.Println("event count: ", eventCount)
 	log.Println("elapsed: ", time.Since(start))
 	log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
 	log.Println("avg process  :", time.Duration(pTotal/pCount).String())
@@ -142,7 +144,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 	lines := make(chan []byte, 0)
 	eg := errgroup.Group{}
-	for i := 0; i <= 6; i++ {
+	for i := 0; i <= max_go_process; i++ {
 		eg.Go(func() error {
 			for line := range lines {
 				ge := GithubEventJson{}
@@ -151,7 +153,6 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 					return errors.Wrap(err, "parsing json")
 				}
 
-				eventCount++
 				for _, v := range repoIds {
 					if ge.Repo.ID == v {
 						events = append(events, ge)

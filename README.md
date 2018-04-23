@@ -1,19 +1,11 @@
-# goals with this repo?
+# Goals with this repo?
 
-- Find new contributors.
-  - follow up flagged contributors
-  - see if flagged contributors keep providing.
-- define SLA / SLO
-- find issues/PR's without a response.
-- open, closed issues
-- open, closed PR's
-- including/excluding core team.
-
-# TODO
-- download all events from github archive
-- filter out event for Grafana
-- store each event in postgre
-- process events from postgre
+ - [ ] Download all events for grafana/grafana
+ - [ ] Aggregate data per day. Issues, PR's
+ - [ ] Build model of current state
+ - [ ] Find new contributors.
+ - [ ] follow up flagged contributors
+ - [ ] see if flagged contributors keep providing.
 
 
 download arch files
