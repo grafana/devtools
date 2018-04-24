@@ -13,7 +13,7 @@
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
 
-archive/
+test-data/
 main
 test.db
 test.db-journal
