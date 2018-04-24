@@ -16,4 +16,5 @@
 archive/
 main
 test.db
+test.db-journal
 log.log
