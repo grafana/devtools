@@ -8,10 +8,11 @@
  - [ ] see if flagged contributors keep providing.
 
 
-download arch files
+download arch files and serve locally
 ```bash
-cd archive
+cd test-data
 wget http://data.githubarchive.org/2015-01-{01..30}-{0..23}.json.gz
+go run main.go
 ```
 
 commands:
