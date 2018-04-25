@@ -52,3 +52,7 @@
 [[constraint]]
   name = "github.com/bitly/go-simplejson"
   version = "0.5.0"
+
+[[constraint]]
+  name = "github.com/daniellee/go-github"
+  revision = "0c1a3bf8dc0b8c1f14b1634d4c142a192cedf466"
