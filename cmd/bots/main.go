@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/grafana/github-repo-metrics/cmd/bots"
+	"github.com/grafana/github-repo-metrics/pkg/bots"
 )
 
 var (
