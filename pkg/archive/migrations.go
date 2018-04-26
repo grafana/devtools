@@ -6,11 +6,11 @@ import (
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
 
-func InitDatabase(dbType string, connectionString string) error {
+func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) {
 	x, err := xorm.NewEngine(dbType, connectionString)
 	x.SetColumnMapper(core.GonicMapper{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	mig := migrator.NewMigrator(x)
@@ -56,5 +56,5 @@ func InitDatabase(dbType string, connectionString string) error {
 
 	mig.AddMigration("create github event table", migrator.NewAddTableMigration(githubEvent))
 
-	return mig.Start()
+	return x, mig.Start()
 }

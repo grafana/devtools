@@ -16,12 +16,18 @@ type AggregatedStats struct {
 	IssueCount int64
 }
 
-func aggregate(engine *xorm.Engine) error {
+type Aggregator struct {
+	engine *xorm.Engine
+}
+
+func NewAggregator(engine *xorm.Engine) *Aggregator {
+	return &Aggregator{engine: engine}
+}
+
+func (a *Aggregator) Aggregate() error {
 	events := []*GithubEvent{}
 
-	//asdf := map[ArchiveFile]*AggregatedStats{}
-
-	err := engine.Limit(1000, 0).Find(&events)
+	err := a.engine.Limit(1000, 0).Find(&events)
 	if err != nil {
 		log.Fatalf("failed to query. error: %v", err)
 	}

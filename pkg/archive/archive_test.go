@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,13 +65,10 @@ func TestWritingArchiveFile(t *testing.T) {
 		Hour:  1,
 	}
 
-	err := InitDatabase("sqlite3", "./test.db")
+	engine, err := InitDatabase("sqlite3", "./test.db")
 	if err != nil {
 		log.Fatalf("failed to connect to database. error: %v", err)
 	}
-
-	engine, err := xorm.NewEngine("sqlite3", "./test.db")
-	engine.SetColumnMapper(core.GonicMapper{})
 
 	engine.Insert(file)
 }
@@ -97,13 +92,7 @@ func TestWritingToDatabase(t *testing.T) {
 		})
 	}
 
-	err = InitDatabase("sqlite3", "./test.db")
-	if err != nil {
-		t.Fatalf("failed to connect to database. error: %v", err)
-	}
-
-	engine, err := xorm.NewEngine("sqlite3", "./test.db")
-	engine.SetColumnMapper(core.GonicMapper{})
+	engine, err := InitDatabase("sqlite3", "./test.db")
 	if err != nil {
 		t.Fatalf("failed to connect to database. error: %v", err)
 	}
@@ -117,4 +106,8 @@ func TestWritingToDatabase(t *testing.T) {
 
 func fakeStopDate(days, hours int) time.Time {
 	return time.Date(2018, time.Month(1), days, hours, 0, 0, 0, time.Local)
+}
+
+func TestAsd(t *testing.T) {
+
 }
