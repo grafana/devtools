@@ -1,4 +1,4 @@
-package main
+package archive
 
 import (
 	"github.com/go-xorm/core"
@@ -6,7 +6,7 @@ import (
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
 
-func initDatabase(dbType string, connectionString string) error {
+func InitDatabase(dbType string, connectionString string) error {
 	x, err := xorm.NewEngine(dbType, connectionString)
 	x.SetColumnMapper(core.GonicMapper{})
 	if err != nil {

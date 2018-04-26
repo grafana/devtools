@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"github.com/grafana/github-repo-metrics/pkg/archive"
 	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
 
@@ -35,7 +36,7 @@ func main() {
 
 	log.SetOutput(f)
 
-	err = initDatabase(database, connectionString)
+	err = archive.InitDatabase(database, connectionString)
 	if err != nil {
 		log.Fatalf("migration failed. error: %v", err)
 	}
@@ -49,6 +50,6 @@ func main() {
 
 	//aggregate(x)
 
-	ad := NewArchiveDownloader(x)
-	ad.downloadEvents()
+	ad := archive.NewArchiveDownloader(x, archiveUrl, repoIds)
+	ad.DownloadEvents()
 }

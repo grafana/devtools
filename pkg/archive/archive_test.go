@@ -1,4 +1,4 @@
-package main
+package archive
 
 import (
 	"log"
@@ -67,7 +67,7 @@ func TestWritingArchiveFile(t *testing.T) {
 		Hour:  1,
 	}
 
-	err := initDatabase("sqlite3", "./test.db")
+	err := InitDatabase("sqlite3", "./test.db")
 	if err != nil {
 		log.Fatalf("failed to connect to database. error: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestWritingToDatabase(t *testing.T) {
 		})
 	}
 
-	err = initDatabase("sqlite3", "./test.db")
+	err = InitDatabase("sqlite3", "./test.db")
 	if err != nil {
 		t.Fatalf("failed to connect to database. error: %v", err)
 	}

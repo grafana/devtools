@@ -1,4 +1,4 @@
-package main
+package archive
 
 import (
 	"bufio"
@@ -59,16 +59,20 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, startDa
 }
 
 type ArchiveDownloader struct {
-	engine *xorm.Engine
+	engine  *xorm.Engine
+	url     string
+	repoIds []int64
 }
 
-func NewArchiveDownloader(engine *xorm.Engine) *ArchiveDownloader {
+func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64) *ArchiveDownloader {
 	return &ArchiveDownloader{
-		engine: engine,
+		engine:  engine,
+		url:     url,
+		repoIds: repoIds,
 	}
 }
 
-func (ad *ArchiveDownloader) downloadEvents() {
+func (ad *ArchiveDownloader) DownloadEvents() {
 	var downloadUrls = make(chan *ArchiveFile, 0)
 	start := time.Now()
 
@@ -119,7 +123,7 @@ func (ad *ArchiveDownloader) downloadEvents() {
 
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	start := time.Now()
-	url := fmt.Sprintf(archiveUrl, file.Year, file.Month, file.Day, file.Hour)
+	url := fmt.Sprintf(ad.url, file.Year, file.Month, file.Day, file.Hour)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -153,7 +157,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 					return errors.Wrap(err, "parsing json")
 				}
 
-				for _, v := range repoIds {
+				for _, v := range ad.repoIds {
 					if ge.Repo.ID == v {
 						events = append(events, ge)
 					}
