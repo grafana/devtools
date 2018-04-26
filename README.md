@@ -1,12 +1,7 @@
-# Goals with this repo?
+# Github repo metrics
 
- - [ ] Download all events for grafana/grafana
- - [ ] Aggregate data per day. Issues, PR's
- - [ ] Build model of current state
- - [ ] Find new contributors.
- - [ ] follow up flagged contributors
- - [ ] see if flagged contributors keep providing.
-
+A bundle of CLI applications for gathering/extracting data from github 
+and turning it into actionable data.
 
 download arch files and serve locally
 ```bash
@@ -23,11 +18,3 @@ docker run -it --rm jbergknoff/postgresql-client postgresql://user:pass@host:543
 
 docker run -it --rm jbergknoff/postgresql-client postgresql://githubstats:githubstats@localhost:5432/githubstats
 ```
-
-Performance.
-~22s per day.
-
-22 * 365 = 8030s per year
-48180s for 6 years
-803min for 6 years
-13h for 6 years
