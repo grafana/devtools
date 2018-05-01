@@ -32,5 +32,8 @@ func main() {
 	}
 
 	aggregator := archive.NewAggregator(engine)
-	aggregator.Aggregate()
+	err = aggregator.Aggregate()
+	if err != nil {
+		log.Fatalf("failed to aggregate events. error %v", err)
+	}
 }

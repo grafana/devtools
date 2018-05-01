@@ -13,6 +13,7 @@ import (
 // loop over and aggregate per day.
 
 type AggregatedStats struct {
+	ID         int64
 	IssueCount int64
 }
 
@@ -25,6 +26,72 @@ func NewAggregator(engine *xorm.Engine) *Aggregator {
 }
 
 func (a *Aggregator) Aggregate() error {
+	events, err := a.findEvents()
+	if err != nil {
+		return err
+	}
+
+	aggs, err := a.aggregate(events)
+	if err != nil {
+		return err
+	}
+
+	for _, aggregation := range aggs {
+		_, err := a.engine.Exec("DELETE FROM aggregated_stats WHERE id = ? ", aggregation.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = a.engine.Insert(aggregation)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+var (
+	EventTypeIssue = "IssuesEvent"
+)
+
+func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStats, error) {
+	aggregations := map[int64]*AggregatedStats{}
+
+	var issueCount int64 = 0
+	//var prCount int64 = 0
+	//var watcherCount int64 = 0
+
+	for _, e := range events {
+		id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), 0, 0, 0, 0, time.UTC).UTC().Unix()
+
+		if _, exists := aggregations[id]; !exists {
+			aggregations[id] = &AggregatedStats{ID: id, IssueCount: issueCount}
+		}
+
+		fmt.Printf("event: %+v\n", e)
+
+		if e.Type == EventTypeIssue {
+			issueStat, err := e.Payload.Get("action").String()
+			if err == nil && issueStat != "" {
+				switch issueStat {
+				case "opened":
+					issueCount++
+				case "closed":
+					issueCount--
+				default:
+					log.Printf("Unknown issue action: %s", issueStat)
+				}
+			}
+		}
+
+		aggregations[id].IssueCount = issueCount
+	}
+
+	return aggregations, nil
+}
+
+func (a *Aggregator) findEvents() ([]*GithubEvent, error) {
 	events := []*GithubEvent{}
 
 	err := a.engine.Limit(1000, 0).Find(&events)
@@ -32,16 +99,5 @@ func (a *Aggregator) Aggregate() error {
 		log.Fatalf("failed to query. error: %v", err)
 	}
 
-	for _, e := range events {
-		issueStat, err := e.Payload.Get("action").String()
-		if err == nil && issueStat != "" {
-			fmt.Printf("date: %v issue action: %s\n", e.CreatedAt, issueStat)
-		}
-	}
-
-	return nil
-}
-
-func GetArchDateFrom(t time.Time) *ArchiveFile {
-	return NewArchiveFile(t.Year(), int(t.Month()), t.Day(), t.Hour())
+	return events, nil
 }

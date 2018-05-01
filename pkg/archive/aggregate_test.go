@@ -5,24 +5,68 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/grafana/grafana/pkg/components/simplejson"
 )
 
-func TestParsingDatetime(t *testing.T) {
+func TestAggregateIssueCount(t *testing.T) {
+	jsonIssueOpened, err := simplejson.NewJson([]byte(`{ "action": "opened" }`))
+	assert.Nil(t, err, "json opened ")
+	jsonIssueClosed, err := simplejson.NewJson([]byte(`{ "action": "closed" }`))
+	assert.Nil(t, err, "json closed ")
+
+	dayOne := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+	dayTwo := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.UTC)
+	dayThree := time.Date(2015, time.Month(1), 3, 0, 0, 0, 0, time.UTC)
+
 	tc := []struct {
-		Date     string
-		ArchFile *ArchiveFile
+		Aggregations map[int64]*AggregatedStats
+		Events       []*GithubEvent
 	}{
-		{Date: "2018-01-01T20:38:03.000Z", ArchFile: NewArchiveFile(2018, 1, 1, 20)},
-		{Date: "2015-01-01T20:38:03.000Z", ArchFile: NewArchiveFile(2015, 1, 1, 20)},
+		{
+			Aggregations: map[int64]*AggregatedStats{
+				dayOne.UTC().Unix():   &AggregatedStats{IssueCount: 1},
+				dayTwo.UTC().Unix():   &AggregatedStats{IssueCount: 4},
+				dayThree.UTC().Unix(): &AggregatedStats{IssueCount: 5},
+			},
+			Events: []*GithubEvent{
+				mockGithubEvent(EventTypeIssue, dayOne.Add(time.Hour).UTC(), jsonIssueOpened),
+
+				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueClosed),
+
+				mockGithubEvent(EventTypeIssue, dayThree.Add(time.Hour).UTC(), jsonIssueOpened),
+			},
+		},
 	}
 
+	ag := NewAggregator(nil)
 	for _, test := range tc {
-		date, err := time.Parse("2006-01-02T15:04:05.000Z", test.Date)
-		if err != nil {
-			t.Fatalf("failed to parse date")
-		}
+		aggs, err := ag.aggregate(test.Events)
+		assert.Nil(t, err, "aggreagte should not return error")
 
-		arch := GetArchDateFrom(date)
-		assert.Equal(t, test.ArchFile, arch, "not same arch")
+		for date, testAggregation := range test.Aggregations {
+			aggregation, exists := aggs[date]
+			if exists {
+				assert.Equal(t, aggregation.IssueCount, testAggregation.IssueCount)
+			} else {
+				assert.Fail(t, "could not find aggregation state")
+			}
+		}
 	}
+}
+
+func mockGithubEvent(typ string, timestamp time.Time, paylaod *simplejson.Json) *GithubEvent {
+	ge := &GithubEvent{
+		ID:      timestamp.UTC().Unix(),
+		Payload: paylaod,
+		Type:    typ,
+	}
+
+	ge.CreatedAt = timestamp.UTC()
+
+	return ge
 }

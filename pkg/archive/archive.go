@@ -95,10 +95,13 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 			})
 	}
 
+	// First public event for Grafana was at 16th Jan 2014
+	// startDate := time.Date(2014, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+
 	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-	//stopDate := time.Now()
-	//stopDate := time.Date(2018, time.Month(1), 2, 1, 0, 0, 0, time.UTC)
-	stopDate := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.UTC)
+	// stopDate := time.Now()
+	// stopDate := time.Date(2018 time.Month(1), 2, 1, 0, 0, 0, time.UTC)
+	stopDate := time.Date(2015, time.Month(1), 4, 0, 0, 0, 0, time.UTC)
 
 	urls := ad.buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
@@ -113,8 +116,10 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 
 	log.Println("filtered event: ", len(allEvents))
 	log.Println("elapsed: ", time.Since(start))
-	log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
-	log.Println("avg process  :", time.Duration(pTotal/pCount).String())
+	if dlCount > 0 && pCount > 0 {
+		log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
+		log.Println("avg process  :", time.Duration(pTotal/pCount).String())
+	}
 }
 
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
