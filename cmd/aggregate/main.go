@@ -3,28 +3,27 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 
 	"github.com/grafana/github-repo-metrics/pkg/archive"
 )
 
 var (
-	connectionString = ""
 	database         = ""
+	connectionString = ""
 )
 
 func main() {
-	flag.StringVar(&connectionString, "connectionString", "", "description")
-	flag.StringVar(&database, "database", "", "description")
+	flag.StringVar(&database, "database", "", "database type")
+	flag.StringVar(&connectionString, "connectionString", "", "connection string")
 	flag.Parse()
 
-	f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
+	// f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	// if err != nil {
+	// 	log.Fatalf("error opening file: %v", err)
+	// }
+	// defer f.Close()
 
-	log.SetOutput(f)
+	// log.SetOutput(f)
 
 	engine, err := archive.InitDatabase(database, connectionString)
 	if err != nil {
