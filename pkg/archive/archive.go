@@ -55,27 +55,31 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, st, sto
 }
 
 type ArchiveDownloader struct {
-	engine  *xorm.Engine
-	url     string
-	repoIds []int64
+	engine    *xorm.Engine
+	url       string
+	repoIds   []int64
+	startDate time.Time
+	stopDate  time.Time
 }
 
-func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64) *ArchiveDownloader {
+func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, startDate, stopDate time.Time) *ArchiveDownloader {
 	return &ArchiveDownloader{
-		engine:  engine,
-		url:     url,
-		repoIds: repoIds,
+		engine:    engine,
+		url:       url,
+		repoIds:   repoIds,
+		startDate: startDate,
+		stopDate:  stopDate,
 	}
 }
 
-func (ad *ArchiveDownloader) DownloadEvents() {
+func (ad *ArchiveDownloader) DownloadEvents() error {
 	var downloadUrls = make(chan *ArchiveFile, 0)
 	start := time.Now()
 
 	var archFiles []*ArchiveFile
 	err := ad.engine.Find(&archFiles)
 	if err != nil {
-		log.Fatalf("could not find archivefile. error: %v", err)
+		return err
 	}
 
 	log.Printf("found %v arch files", len(archFiles))
@@ -95,15 +99,7 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 			})
 	}
 
-	// First public event for Grafana was at 16th Jan 2014
-	// startDate := time.Date(2014, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-
-	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-	// stopDate := time.Now()
-	// stopDate := time.Date(2018 time.Month(1), 2, 1, 0, 0, 0, time.UTC)
-	stopDate := time.Date(2015, time.Month(1), 4, 0, 0, 0, 0, time.UTC)
-
-	urls := ad.buildUrlsDownload(archFiles, startDate, stopDate)
+	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
 	for _, u := range urls {
 		downloadUrls <- u
 	}
@@ -111,7 +107,7 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 
 	err = downloadGroup.Wait()
 	if err != nil {
-		log.Fatalf("error: %+v", err)
+		return err
 	}
 
 	log.Println("filtered event: ", len(allEvents))
@@ -120,6 +116,8 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 		log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
 		log.Println("avg process  :", time.Duration(pTotal/pCount).String())
 	}
+
+	return nil
 }
 
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
