@@ -31,28 +31,24 @@ var dlCount int64
 var pTotal int64
 var pCount int64
 
-func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, startDate, stopDate time.Time) []*ArchiveFile {
+func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, st, stopDate time.Time) []*ArchiveFile {
 	var result []*ArchiveFile
 
-	for startDate.Unix() < stopDate.Unix() {
+	index := map[int64]*ArchiveFile{}
 
-		// TODO: use hashset to see if the file have been
-		// processed before. This looks like shiet
-		archivedFile := &ArchiveFile{
-			Year:  startDate.Year(),
-			Month: int(startDate.Month()),
-			Day:   startDate.Day(),
-			Hour:  startDate.Hour(),
+	// create lookup index based in ArchiveFile ID
+	for _, a := range archFiles {
+		index[a.ID] = a
+	}
+
+	for st.Unix() < stopDate.Unix() {
+		archivedFile := NewArchiveFile(st.Year(), int(st.Month()), st.Day(), st.Hour())
+		_, exist := index[archivedFile.ID]
+		if !exist {
+			result = append(result, archivedFile)
 		}
 
-		for _, a := range archFiles {
-			if archivedFile.Equals(a) {
-				break
-			}
-		}
-
-		result = append(result, archivedFile)
-		startDate = startDate.Add(time.Hour)
+		st = st.Add(time.Hour)
 	}
 
 	return result
@@ -99,10 +95,10 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 			})
 	}
 
-	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.Local)
-	stopDate := time.Now()
-	//stopDate := time.Date(2018, time.Month(1), 3, 12, 0, 0, 0, time.Local)
-	//stopDate := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.Local)
+	startDate := time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+	//stopDate := time.Now()
+	//stopDate := time.Date(2018, time.Month(1), 2, 1, 0, 0, 0, time.UTC)
+	stopDate := time.Date(2015, time.Month(1), 2, 0, 0, 0, 0, time.UTC)
 
 	urls := ad.buildUrlsDownload(archFiles, startDate, stopDate)
 	for _, u := range urls {
@@ -123,7 +119,10 @@ func (ad *ArchiveDownloader) DownloadEvents() {
 
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	start := time.Now()
-	url := fmt.Sprintf(ad.url, file.Year, file.Month, file.Day, file.Hour)
+	ft := time.Unix(file.ID, 0).UTC()
+	url := fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
+
+	log.Println("downloading url: ", url)
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -197,7 +196,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	close(lines)
 
 	if eg.Wait() != nil {
-		return err //log.Fatalf("failed waiting. error: %v", err)
+		return err
 	}
 
 	var dbEvents []*GithubEvent

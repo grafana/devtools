@@ -43,5 +43,5 @@ func (a *Aggregator) Aggregate() error {
 }
 
 func GetArchDateFrom(t time.Time) *ArchiveFile {
-	return &ArchiveFile{Year: t.Year(), Month: int(t.Month()), Day: t.Day(), Hour: t.Hour()}
+	return NewArchiveFile(t.Year(), int(t.Month()), t.Day(), t.Hour())
 }

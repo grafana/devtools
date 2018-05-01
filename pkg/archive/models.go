@@ -8,19 +8,16 @@ import (
 )
 
 type ArchiveFile struct {
-	ID    int64
-	Year  int
-	Month int
-	Day   int
-	Hour  int
+	ID        int64
+	CreatedAt time.Time
 }
 
-// Equals compare two *ArchiveFile to see if they are equal
-func (a *ArchiveFile) Equals(other *ArchiveFile) bool {
-	return a.Year == other.Year &&
-		a.Month == other.Month &&
-		a.Day == other.Day &&
-		a.Hour == other.Hour
+func NewArchiveFile(year, month, day, hour int) *ArchiveFile {
+	dt := time.Date(int(year), time.Month(month), int(day), int(hour), 0, 0, 0, time.UTC)
+	return &ArchiveFile{
+		CreatedAt: dt,
+		ID:        dt.Unix(),
+	}
 }
 
 type Repo struct {

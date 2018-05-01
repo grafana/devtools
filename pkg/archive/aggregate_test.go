@@ -12,8 +12,8 @@ func TestParsingDatetime(t *testing.T) {
 		Date     string
 		ArchFile *ArchiveFile
 	}{
-		{Date: "2018-01-01T20:38:03.000Z", ArchFile: &ArchiveFile{Year: 2018, Month: 1, Day: 1, Hour: 20}},
-		{Date: "2015-01-01T20:38:03.000Z", ArchFile: &ArchiveFile{Year: 2015, Month: 1, Day: 1, Hour: 20}},
+		{Date: "2018-01-01T20:38:03.000Z", ArchFile: NewArchiveFile(2018, 1, 1, 20)},
+		{Date: "2015-01-01T20:38:03.000Z", ArchFile: NewArchiveFile(2015, 1, 1, 20)},
 	}
 
 	for _, test := range tc {

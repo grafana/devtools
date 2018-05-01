@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var startDate = time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.Local)
+var startDate = time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 
 func TestGenerateUrlsFor6Hours(t *testing.T) {
 	var archivedFiles []*ArchiveFile
@@ -35,35 +35,27 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 	ad := &ArchiveDownloader{}
 
 	for i := 0; i < 12; i++ {
-		archivedFiles = append(archivedFiles, &ArchiveFile{
-			Year:  2018,
-			Month: 1,
-			Day:   1,
-			Hour:  i})
+		archivedFiles = append(archivedFiles, NewArchiveFile(2018, 1, 1, i))
 	}
 
-	stopDate := fakeStopDate(1, 12)
+	extraHours := 23
+	stopDate := time.Date(2018, time.Month(1), 1, extraHours, 0, 0, 0, time.UTC)
 
 	t.Run("gap before start date", func(t *testing.T) {
 		result := ad.buildUrlsDownload(archivedFiles, startDate, stopDate)
-		assert.Equal(t, 12, len(result), "failure")
+		assert.Equal(t, extraHours-12, len(result), "failure")
 	})
 
 	t.Run("gap after start date", func(t *testing.T) {
-		startDate = startDate.AddDate(0, 0, -1)
+		startDate = startDate.AddDate(0, 0, -2) //start two days earlier
 		result := ad.buildUrlsDownload(archivedFiles, startDate, stopDate)
 
-		assert.Equal(t, 36, len(result), "failure")
+		assert.Equal(t, 48+extraHours-12, len(result), "should get events for two days + 12 hours")
 	})
 }
 
 func TestWritingArchiveFile(t *testing.T) {
-	file := &ArchiveFile{
-		Year:  2018,
-		Month: 1,
-		Day:   1,
-		Hour:  1,
-	}
+	file := NewArchiveFile(2018, 1, 1, 1)
 
 	engine, err := InitDatabase("sqlite3", "./test.db")
 	if err != nil {
@@ -105,9 +97,13 @@ func TestWritingToDatabase(t *testing.T) {
 }
 
 func fakeStopDate(days, hours int) time.Time {
-	return time.Date(2018, time.Month(1), days, hours, 0, 0, 0, time.Local)
+	return time.Date(2018, time.Month(1), days, hours, 0, 0, 0, time.UTC)
 }
 
-func TestAsd(t *testing.T) {
+func TestArchiveFileIdFormat(t *testing.T) {
+	af := NewArchiveFile(2015, 10, 10, 10)
 
+	dt := time.Date(2015, time.Month(10), 10, 10, 0, 0, 0, time.UTC)
+
+	assert.Equal(t, af.ID, dt.Unix(), af.ID)
 }

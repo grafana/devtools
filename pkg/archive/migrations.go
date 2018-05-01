@@ -32,11 +32,8 @@ func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) 
 	archiveFile := migrator.Table{
 		Name: "archive_file",
 		Columns: []*migrator.Column{
-			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true, IsAutoIncrement: true},
-			{Name: "year", Type: migrator.DB_Int},
-			{Name: "month", Type: migrator.DB_Int},
-			{Name: "day", Type: migrator.DB_Int},
-			{Name: "hour", Type: migrator.DB_Int},
+			{Name: "id", Type: migrator.DB_BigInt, IsPrimaryKey: true},
+			{Name: "created_at", Type: migrator.DB_DateTime},
 		},
 	}
 
