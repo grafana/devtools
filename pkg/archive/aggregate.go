@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -13,8 +12,11 @@ import (
 // loop over and aggregate per day.
 
 type AggregatedStats struct {
-	ID         int64
-	IssueCount int64
+	ID                int64
+	IssueCount        int64
+	IssueCommentCount int64
+	PrCount           int64
+	WatcherCount      int64
 }
 
 type Aggregator struct {
@@ -52,24 +54,30 @@ func (a *Aggregator) Aggregate() error {
 }
 
 var (
-	EventTypeIssue = "IssuesEvent"
+	EventTypeIssue   = "IssuesEvent"
+	EventTypeComment = "IssueCommentEvent"
+	WatchEvent       = "WatchEvent"
 )
 
 func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStats, error) {
 	aggregations := map[int64]*AggregatedStats{}
 
 	var issueCount int64 = 0
-	//var prCount int64 = 0
-	//var watcherCount int64 = 0
+	var issueCommentCount int64 = 0
+	var prCount int64 = 0
+	var watcherCount int64 = 0
 
 	for _, e := range events {
 		id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), 0, 0, 0, 0, time.UTC).UTC().Unix()
 
 		if _, exists := aggregations[id]; !exists {
-			aggregations[id] = &AggregatedStats{ID: id, IssueCount: issueCount}
+			aggregations[id] = &AggregatedStats{
+				ID:           id,
+				IssueCount:   issueCount,
+				PrCount:      prCount,
+				WatcherCount: watcherCount,
+			}
 		}
-
-		fmt.Printf("event: %+v\n", e)
 
 		if e.Type == EventTypeIssue {
 			issueStat, err := e.Payload.Get("action").String()
@@ -85,7 +93,28 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 			}
 		}
 
+		if e.Type == WatchEvent {
+			issueStat, err := e.Payload.Get("action").String()
+			if err == nil && issueStat != "" {
+				switch issueStat {
+				case "started":
+					watcherCount++
+				//case "closed":
+				//	issueCount--
+				default:
+					log.Printf("Unknown issue action: %s", issueStat)
+				}
+			}
+		}
+
+		if e.Type == EventTypeComment {
+			issueCommentCount++
+		}
+
 		aggregations[id].IssueCount = issueCount
+		aggregations[id].IssueCommentCount = issueCommentCount
+		aggregations[id].PrCount = prCount
+		aggregations[id].WatcherCount = watcherCount
 	}
 
 	return aggregations, nil

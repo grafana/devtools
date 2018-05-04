@@ -34,9 +34,8 @@ var pCount int64
 func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, st, stopDate time.Time) []*ArchiveFile {
 	var result []*ArchiveFile
 
-	index := map[int64]*ArchiveFile{}
-
 	// create lookup index based in ArchiveFile ID
+	index := map[int64]*ArchiveFile{}
 	for _, a := range archFiles {
 		index[a.ID] = a
 	}
@@ -124,8 +123,6 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	start := time.Now()
 	ft := time.Unix(file.ID, 0).UTC()
 	url := fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
-
-	log.Println("downloading url: ", url)
 
 	res, err := http.Get(url)
 	if err != nil {
