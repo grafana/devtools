@@ -170,10 +170,11 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 		zr.Multistream(false)
 
 		scanner := bufio.NewScanner(zr)
-		scanner.Buffer([]byte(""), 2048*2048) //increase buffer limit
+		buff := make([]byte, 2048*2048)
+		scanner.Buffer(buff, 2048*2048) //increase buffer limit
 
 		for scanner.Scan() {
-			lines <- []byte(scanner.Text()) //why does this work? :/
+			lines <- scanner.Bytes()
 		}
 
 		err := scanner.Err()
