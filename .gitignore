@@ -18,3 +18,7 @@ main
 test.db
 test.db-journal
 log.log
+
+cmd/archive/archive
+cmd/aggregate/aggregate
+cmd/bots/main
