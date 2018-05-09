@@ -3,8 +3,8 @@ all: deps build
 VERSION := v1
 
 build:
-	go build -o ./cmd/aggregate/aggregate ./cmd/aggregate/.
-	go build -o ./cmd/archive/archive ./cmd/archive/.
+	go build -o aggregate ./cmd/aggregate/.
+	go build -o archive ./cmd/archive/.
 
 archive: build
 	./cmd/archive/archive -database="sqlite3" -connectionString="./test.db" -archiveUrl="http://localhost:8100/%d-%02d-%02d-%d.json.gz"

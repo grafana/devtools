@@ -19,6 +19,6 @@ test.db
 test.db-journal
 log.log
 
-cmd/archive/archive
-cmd/aggregate/aggregate
+archive
+aggregate
 cmd/bots/main
