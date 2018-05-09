@@ -1,6 +1,6 @@
 all: deps build
 
-VERSION := v1
+VERSION := v2
 
 build:
 	go build -o aggregate ./cmd/aggregate/.
