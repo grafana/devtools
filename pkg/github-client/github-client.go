@@ -13,6 +13,7 @@ type GithubClient struct {
 	Client *github.Client
 }
 
+// NewClient is the constructor method for the GitHub client wrapper
 func NewClient(accessToken string) *GithubClient {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: accessToken},
@@ -25,6 +26,10 @@ func NewClient(accessToken string) *GithubClient {
 	return &ghc
 }
 
+// GetStaleFeatureRequests returns a list of issues with the feature request label that are:
+// - older than 60 days
+// - have less than 5 positive reactions
+// - have no cross referenced PR's
 func (ghc *GithubClient) GetStaleFeatureRequests(ctx context.Context, owner string, repo string, frLabel string) ([]*github.Issue, error) {
 	minimumReactions := 5
 	var staleAfterDays time.Duration = 60
