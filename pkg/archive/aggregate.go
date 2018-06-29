@@ -7,10 +7,6 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// get X events from DB.
-// Parse add to memory
-// loop over and aggregate per day.
-
 type AggregatedStats struct {
 	ID                int64
 	IssueCount        int64
@@ -20,11 +16,12 @@ type AggregatedStats struct {
 }
 
 type Aggregator struct {
-	engine *xorm.Engine
+	engine    *xorm.Engine
+	closeChan chan time.Time
 }
 
-func NewAggregator(engine *xorm.Engine) *Aggregator {
-	return &Aggregator{engine: engine}
+func NewAggregator(engine *xorm.Engine, closeChan chan time.Time) *Aggregator {
+	return &Aggregator{engine: engine, closeChan: closeChan}
 }
 
 func (a *Aggregator) Aggregate() error {

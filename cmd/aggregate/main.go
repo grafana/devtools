@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	"github.com/grafana/github-repo-metrics/pkg/archive"
 )
@@ -30,7 +31,12 @@ func main() {
 		log.Fatalf("migration failed. error: %v", err)
 	}
 
-	aggregator := archive.NewAggregator(engine)
+	doneChan := make(chan time.Time)
+	aggregator := archive.NewAggregator(engine, doneChan)
+	go func() {
+		doneChan <- <-time.After(time.Minute * 50)
+	}()
+
 	err = aggregator.Aggregate()
 	if err != nil {
 		log.Fatalf("failed to aggregate events. error %v", err)

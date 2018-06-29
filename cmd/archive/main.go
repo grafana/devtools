@@ -59,7 +59,12 @@ func main() {
 		log.Fatalf("migration failed. error: %v", err)
 	}
 
-	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate)
+	doneChan := make(chan time.Time)
+	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate, doneChan)
+	go func() {
+		doneChan <- <-time.After(time.Minute * 50)
+	}()
+
 	err = ad.DownloadEvents()
 	if err != nil {
 		log.Fatalf("failed to download archive files. error: %v", err)

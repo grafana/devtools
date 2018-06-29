@@ -60,15 +60,17 @@ type ArchiveDownloader struct {
 	repoIds   []int64
 	startDate time.Time
 	stopDate  time.Time
+	doneChan  chan time.Time
 }
 
-func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, startDate, stopDate time.Time) *ArchiveDownloader {
+func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
 	return &ArchiveDownloader{
 		engine:    engine,
 		url:       url,
 		repoIds:   repoIds,
 		startDate: startDate,
 		stopDate:  stopDate,
+		doneChan:  doneChan,
 	}
 }
 
