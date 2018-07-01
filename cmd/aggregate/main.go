@@ -34,7 +34,8 @@ func main() {
 	doneChan := make(chan time.Time)
 	aggregator := archive.NewAggregator(engine, doneChan)
 	go func() {
-		doneChan <- <-time.After(time.Minute * 50)
+		<-time.After(time.Second * 1)
+		close(doneChan)
 	}()
 
 	err = aggregator.Aggregate()

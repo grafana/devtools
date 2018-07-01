@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -75,7 +76,6 @@ func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, star
 }
 
 func (ad *ArchiveDownloader) DownloadEvents() error {
-	var downloadUrls = make(chan *ArchiveFile, 0)
 	start := time.Now()
 
 	var archFiles []*ArchiveFile
@@ -86,34 +86,45 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 
 	log.Printf("found %v arch files", len(archFiles))
 
-	downloadGroup := errgroup.Group{}
+	downloadGroup, _ := errgroup.WithContext(context.Background())
+
+	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
+	var downloadUrls = make(chan *ArchiveFile, len(urls))
 
 	for i := 0; i <= max_go_routines; i++ {
+		workedId := i
+
 		downloadGroup.Go(
 			func() error {
-				for u := range downloadUrls {
-					err := ad.download(u)
-					if err != nil {
-						log.Printf("error: %+v failed to download file. error: %v\n", u, err)
+				log.Printf("starting workedId #%d\n", workedId)
+				for {
+					select {
+					case <-ad.doneChan:
+						log.Printf("closing workedId #%d\n", workedId)
+						return nil
+					case u := <-downloadUrls:
+						if u != nil {
+							err := ad.download(u)
+							if err != nil {
+								log.Printf("error: %+v failed to download file. error: %v\n", u, err)
+							}
+						}
 					}
 				}
-				return nil
 			})
 	}
 
-	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
 	for _, u := range urls {
 		downloadUrls <- u
 	}
-	close(downloadUrls)
 
+	close(downloadUrls)
 	err = downloadGroup.Wait()
 	if err != nil {
 		return err
 	}
 
-	log.Println("filtered event: ", len(allEvents))
-	log.Println("elapsed: ", time.Since(start))
+	log.Printf("filtered event: %d - elapsed: %v\n", len(allEvents), time.Since(start))
 	if dlCount > 0 && pCount > 0 {
 		log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
 		log.Println("avg process  :", time.Duration(pTotal/pCount).String())

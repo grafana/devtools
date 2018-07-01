@@ -15,6 +15,7 @@ var (
 	archiveUrl       = ""
 	startDateFlag    = ""
 	stopDateFlag     = ""
+	maxDurationMin   int64
 
 	repoIds = []int64{15111821}
 
@@ -25,10 +26,9 @@ func main() {
 	flag.StringVar(&connectionString, "connectionString", "", "description")
 	flag.StringVar(&database, "database", "", "description")
 	flag.StringVar(&archiveUrl, "archiveUrl", "default?", "description")
-	//flag.StringVar(&startDateFlag, "startDate", "2014-01-01", "start date for parsing events")
 	flag.StringVar(&startDateFlag, "startDate", "2015-01-01", "start date for parsing events")
-	//flag.StringVar(&stopDateFlag, "stopDate", "", "last date the program should download events for")
 	flag.StringVar(&stopDateFlag, "stopDate", "2015-01-03", "last date the program should download events for")
+	flag.Int64Var(&maxDurationMin, "maxDurationMin", 60, "asdf")
 	flag.Parse()
 
 	// f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -62,7 +62,8 @@ func main() {
 	doneChan := make(chan time.Time)
 	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate, doneChan)
 	go func() {
-		doneChan <- <-time.After(time.Minute * 50)
+		<-time.After(time.Duration(maxDurationMin * int64(time.Minute)))
+		close(doneChan)
 	}()
 
 	err = ad.DownloadEvents()
