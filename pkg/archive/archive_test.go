@@ -32,7 +32,9 @@ func TestGenerateUrlsFor6Hours(t *testing.T) {
 
 func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 	var archivedFiles []*ArchiveFile
-	ad := &ArchiveDownloader{}
+	ad := &ArchiveDownloader{
+		doneChan: make(chan time.Time),
+	}
 
 	for i := 0; i < 12; i++ {
 		archivedFiles = append(archivedFiles, NewArchiveFile(2018, 1, 1, i))

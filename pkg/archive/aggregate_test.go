@@ -43,7 +43,7 @@ func TestAggregateIssueCount(t *testing.T) {
 		},
 	}
 
-	ag := NewAggregator(nil)
+	ag := NewAggregator(nil, make(chan time.Time))
 	for _, test := range tc {
 		aggs, err := ag.aggregate(test.Events)
 		assert.Nil(t, err, "aggreagte should not return error")
