@@ -25,8 +25,8 @@ import (
 var allEvents []GithubEventJson
 var lock sync.Mutex
 
-const max_go_routines = 4
-const max_go_process = 6
+const maxGoRoutines = 4
+const maxGoProcess = 6
 
 var dlTotal int64
 var dlCount int64
@@ -91,16 +91,17 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
 	var downloadUrls = make(chan *ArchiveFile, len(urls))
 
-	for i := 0; i <= max_go_routines; i++ {
-		workedId := i
+	// start workers
+	for i := 0; i < maxGoRoutines; i++ {
+		workerID := i
 
 		downloadGroup.Go(
 			func() error {
-				log.Printf("starting workedId #%d\n", workedId)
+				log.Printf("starting workerID #%d\n", workerID)
 				for {
 					select {
 					case <-ad.doneChan:
-						log.Printf("closing workedId #%d\n", workedId)
+						log.Printf("closing workerID #%d\n", workerID)
 						return nil
 					case u := <-downloadUrls:
 						if u != nil {
@@ -108,17 +109,26 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 							if err != nil {
 								log.Printf("error: %+v failed to download file. error: %v\n", u, err)
 							}
+						} else {
+							log.Printf("worker #%d is complete\n", workerID)
+							return nil
 						}
 					}
 				}
 			})
 	}
 
+	// queue up work
 	for _, u := range urls {
 		downloadUrls <- u
 	}
 
-	close(downloadUrls)
+	// send nil to close each worker
+	for i := 0; i < maxGoRoutines; i++ {
+		downloadUrls <- nil
+	}
+
+	// wait for all workers to complete
 	err = downloadGroup.Wait()
 	if err != nil {
 		return err
@@ -161,7 +171,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 	lines := make(chan []byte, 0)
 	eg := errgroup.Group{}
-	for i := 0; i <= max_go_process; i++ {
+	for i := 0; i <= maxGoProcess; i++ {
 		eg.Go(func() error {
 			for line := range lines {
 				ge := GithubEventJson{}
@@ -172,7 +182,9 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 				for _, v := range ad.repoIds {
 					if ge.Repo.ID == v {
-						events = append(events, ge)
+
+						ad.insertIntoDatabase([]*GithubEvent{ge.CreateGithubEvent()})
+						//events = append(events, ge)
 					}
 				}
 			}
@@ -214,15 +226,15 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 		return err
 	}
 
-	var dbEvents []*GithubEvent
-	for _, e := range events {
-		dbEvents = append(dbEvents, e.CreateGithubEvent())
-	}
+	// var dbEvents []*GithubEvent
+	// for _, e := range events {
+	// 	dbEvents = append(dbEvents, e.CreateGithubEvent())
+	// }
 
-	err = ad.insertIntoDatabase(dbEvents)
-	if err != nil {
-		log.Fatalf("failed to connect to database. error %v", err)
-	}
+	// err = ad.insertIntoDatabase(dbEvents)
+	// if err != nil {
+	// 	log.Fatalf("failed to connect to database. error %v", err)
+	// }
 
 	ad.engine.Insert(file)
 

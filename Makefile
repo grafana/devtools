@@ -12,7 +12,7 @@ build:
 	go build -o archive ./cmd/archive/.
 
 archive: build
-	./archive -database="sqlite3" -connectionString="./test.db" -maxDurationMin=1 -archiveUrl="http://localhost:8100/%d-%02d-%02d-%d.json.gz"
+	./archive -database="sqlite3" -connectionString="./test.db" -maxDurationMin=15 -archiveUrl="http://localhost:8100/%d-%02d-%02d-%d.json.gz"
 
 docker-build:
 	docker build --tag grafana/github-repo-metrics:${VERSION} .
