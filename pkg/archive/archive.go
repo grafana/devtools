@@ -22,16 +22,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var allEvents []GithubEventJson
 var lock sync.Mutex
 
 const maxGoRoutines = 4
 const maxGoProcess = 6
 
-var dlTotal int64
-var dlCount int64
-var pTotal int64
-var pCount int64
+var eventCount int64
 
 func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, st, stopDate time.Time) []*ArchiveFile {
 	var result []*ArchiveFile
@@ -134,17 +130,12 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 		return err
 	}
 
-	log.Printf("filtered event: %d - elapsed: %v\n", len(allEvents), time.Since(start))
-	if dlCount > 0 && pCount > 0 {
-		log.Println("avg download :", time.Duration(dlTotal/dlCount).String())
-		log.Println("avg process  :", time.Duration(pTotal/pCount).String())
-	}
+	log.Printf("filtered event: %d - elapsed: %v\n", eventCount, time.Since(start))
 
 	return nil
 }
 
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
-	start := time.Now()
 	ft := time.Unix(file.ID, 0).UTC()
 	url := fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
 
@@ -157,17 +148,10 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	buf.ReadFrom(res.Body)
 	defer res.Body.Close()
 
-	dlTotal += int64(time.Now().Sub(start))
-	dlCount += 1
-
-	pStart := time.Now()
-
 	zr, err := gzip.NewReader(buf)
 	if err != nil {
 		return errors.Wrap(err, "parsing compress content")
 	}
-
-	var events []GithubEventJson
 
 	lines := make(chan []byte, 0)
 	eg := errgroup.Group{}
@@ -182,9 +166,8 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 				for _, v := range ad.repoIds {
 					if ge.Repo.ID == v {
-
 						ad.insertIntoDatabase([]*GithubEvent{ge.CreateGithubEvent()})
-						//events = append(events, ge)
+						eventCount++
 					}
 				}
 			}
@@ -226,24 +209,8 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 		return err
 	}
 
-	// var dbEvents []*GithubEvent
-	// for _, e := range events {
-	// 	dbEvents = append(dbEvents, e.CreateGithubEvent())
-	// }
-
-	// err = ad.insertIntoDatabase(dbEvents)
-	// if err != nil {
-	// 	log.Fatalf("failed to connect to database. error %v", err)
-	// }
-
 	ad.engine.Insert(file)
 
-	pTotal += int64(time.Now().Sub(pStart))
-	pCount += 1
-
-	lock.Lock()
-	allEvents = append(allEvents, events...)
-	lock.Unlock()
 	return zr.Close()
 }
 
