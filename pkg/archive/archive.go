@@ -166,7 +166,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 				for _, v := range ad.repoIds {
 					if ge.Repo.ID == v {
-						ad.insertIntoDatabase([]*GithubEvent{ge.CreateGithubEvent()})
+						ad.insertIntoDatabase(ge.CreateGithubEvent())
 						eventCount++
 					}
 				}
@@ -214,20 +214,13 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	return zr.Close()
 }
 
-func (ad *ArchiveDownloader) insertIntoDatabase(events []*GithubEvent) error {
-
-	// we could batch this if we need to write things faster.
-	for _, e := range events {
-		_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", e.ID)
-		if err != nil {
-			return err
-		}
-
-		_, err = ad.engine.Insert(e)
-		if err != nil {
-			return err
-		}
+func (ad *ArchiveDownloader) insertIntoDatabase(event *GithubEvent) error {
+	//remove the event first to make development easier.
+	_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
+	if err != nil {
+		return err
 	}
 
-	return nil
+	_, err = ad.engine.Insert(event)
+	return err
 }
