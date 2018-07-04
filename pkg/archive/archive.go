@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -82,53 +81,58 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 
 	log.Printf("found %v arch files", len(archFiles))
 
-	downloadGroup, _ := errgroup.WithContext(context.Background())
-
 	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
-	var downloadUrls = make(chan *ArchiveFile, len(urls))
+	var downloadUrls = make(chan *ArchiveFile)
+	var done = make(chan bool)
+	wg := sync.WaitGroup{}
 
 	// start workers
 	for i := 0; i < maxGoRoutines; i++ {
-		workerID := i
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
 
-		downloadGroup.Go(
-			func() error {
-				log.Printf("starting workerID #%d\n", workerID)
-				for {
-					select {
-					case <-ad.doneChan:
-						log.Printf("closing workerID #%d\n", workerID)
-						return nil
-					case u := <-downloadUrls:
-						if u != nil {
-							err := ad.download(u)
-							if err != nil {
-								log.Printf("error: %+v failed to download file. error: %v\n", u, err)
-							}
-						} else {
-							log.Printf("worker #%d is complete\n", workerID)
-							return nil
-						}
+			log.Printf("starting workerID #%d\n", workerID)
+
+			for {
+				select {
+				case <-done:
+					log.Printf("worker #%d is complete\n", workerID)
+					return
+				case u := <-downloadUrls:
+					err := ad.download(u)
+					if err != nil {
+						log.Printf("error: %+v failed to download file. error: %v\n", u, err)
 					}
 				}
-			})
+			}
+		}(i)
 	}
 
-	// queue up work
-	for _, u := range urls {
-		downloadUrls <- u
-	}
+	go func() {
+		i := 0
 
-	// send nil to close each worker
-	for i := 0; i < maxGoRoutines; i++ {
-		downloadUrls <- nil
-	}
+		for {
+			select {
+			case <-ad.doneChan:
+				log.Println("closing down gracefully. cancelled by parent")
+				close(done)
+				return
+			default:
+				if i == len(urls) {
+					close(done)
+					return
+				}
+				downloadUrls <- urls[i]
+				i++
+			}
+		}
+	}()
+
+	defer close(downloadUrls)
 
 	// wait for all workers to complete
-	err = downloadGroup.Wait()
-	if err != nil {
-		return err
-	}
+	wg.Wait()
 
 	log.Printf("filtered event: %d - elapsed: %v\n", eventCount, time.Since(start))
 

@@ -63,6 +63,7 @@ func main() {
 	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate, doneChan)
 	go func() {
 		<-time.After(time.Duration(maxDurationMin * int64(time.Minute)))
+		//<-time.After(time.Duration(time.Second / 10))
 		close(doneChan)
 	}()
 
