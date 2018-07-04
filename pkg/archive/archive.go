@@ -67,6 +67,28 @@ func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, star
 	}
 }
 
+func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, downloadUrls chan *ArchiveFile, done chan bool) {
+	wg.Add(1)
+	go func(workerID int) {
+		defer wg.Done()
+
+		log.Printf("starting workerID #%d\n", workerID)
+
+		for {
+			select {
+			case <-done:
+				log.Printf("worker #%d is complete\n", workerID)
+				return
+			case u := <-downloadUrls:
+				err := ad.download(u)
+				if err != nil {
+					log.Printf("error: %+v failed to download file. error: %v\n", u, err)
+				}
+			}
+		}
+	}(index)
+}
+
 func (ad *ArchiveDownloader) DownloadEvents() error {
 	start := time.Now()
 
@@ -85,25 +107,7 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 
 	// start workers
 	for i := 0; i < maxGoRoutines; i++ {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
-
-			log.Printf("starting workerID #%d\n", workerID)
-
-			for {
-				select {
-				case <-done:
-					log.Printf("worker #%d is complete\n", workerID)
-					return
-				case u := <-downloadUrls:
-					err := ad.download(u)
-					if err != nil {
-						log.Printf("error: %+v failed to download file. error: %v\n", u, err)
-					}
-				}
-			}
-		}(i)
+		ad.spawnWorker(i, &wg, downloadUrls, done)
 	}
 
 	go func() {
