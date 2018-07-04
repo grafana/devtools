@@ -140,6 +140,29 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	return nil
 }
 
+func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, lines chan string) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for line := range lines {
+			ge := GithubEventJSON{}
+			err := json.Unmarshal([]byte(line), &ge)
+			if err != nil {
+				log.Printf("failed to parse json. err %+v\n", err)
+				return
+			}
+
+			for _, v := range ad.repoIds {
+				if ge.Repo.ID == v {
+					ad.insertIntoDatabase(ge.CreateGithubEvent())
+					eventCount++
+				}
+			}
+		}
+	}()
+}
+
 func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	ft := time.Unix(file.ID, 0).UTC()
 	url := fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
@@ -161,27 +184,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	lines := make(chan string)
 	wg := sync.WaitGroup{}
 	for i := 0; i <= maxGoProcess; i++ {
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for line := range lines {
-				ge := GithubEventJSON{}
-				err := json.Unmarshal([]byte(line), &ge)
-				if err != nil {
-					log.Printf("failed to parse json.\n file: %s\n err %+v\n", url, err)
-					return
-				}
-
-				for _, v := range ad.repoIds {
-					if ge.Repo.ID == v {
-						ad.insertIntoDatabase(ge.CreateGithubEvent())
-						eventCount++
-					}
-				}
-			}
-		}()
+		ad.spawnLineProcessor(i, &wg, lines)
 	}
 
 	for {
