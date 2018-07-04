@@ -92,9 +92,11 @@ func TestWritingToDatabase(t *testing.T) {
 	}
 
 	ad.engine = engine
-	err = ad.insertIntoDatabase(eventsToWrite)
-	if err != nil {
-		t.Fatalf("failed to connect to database. error: %v", err)
+	for _, etw := range eventsToWrite {
+		err = ad.insertIntoDatabase(etw)
+		if err != nil {
+			t.Fatalf("failed to connect to database. error: %v", err)
+		}
 	}
 }
 

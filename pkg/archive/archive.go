@@ -18,7 +18,6 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 )
 
 var lock sync.Mutex
@@ -157,15 +156,20 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 		return errors.Wrap(err, "parsing compress content")
 	}
 
-	lines := make(chan []byte, 0)
-	eg := errgroup.Group{}
+	lines := make(chan string)
+	wg := sync.WaitGroup{}
 	for i := 0; i <= maxGoProcess; i++ {
-		eg.Go(func() error {
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
 			for line := range lines {
 				ge := GithubEventJson{}
-				err := json.Unmarshal(line, &ge)
+				err := json.Unmarshal([]byte(line), &ge)
 				if err != nil {
-					return errors.Wrap(err, "parsing json")
+					log.Printf("failed to parse json.\n file: %s\n err %+v\n", url, err)
+					return
 				}
 
 				for _, v := range ad.repoIds {
@@ -175,8 +179,8 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 					}
 				}
 			}
-			return nil
-		})
+			return
+		}()
 	}
 
 	for {
@@ -187,7 +191,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 		scanner.Buffer(buff, 2048*2048) //increase buffer limit
 
 		for scanner.Scan() {
-			lines <- scanner.Bytes()
+			lines <- scanner.Text()
 		}
 
 		err := scanner.Err()
@@ -209,9 +213,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 	close(lines)
 
-	if eg.Wait() != nil {
-		return err
-	}
+	wg.Wait()
 
 	ad.engine.Insert(file)
 
