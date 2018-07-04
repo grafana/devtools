@@ -27,7 +27,7 @@ func keepSearching(uri string) {
 	ioutil.WriteFile(fmt.Sprintf("events/response%v.json", i), body, 777)
 	i++
 
-	model := []GithubEventJson{}
+	model := []GithubEventJSON{}
 
 	json.Unmarshal(body, &model)
 

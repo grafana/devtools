@@ -20,8 +20,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var lock sync.Mutex
-
 const maxGoRoutines = 4
 const maxGoProcess = 6
 
@@ -165,7 +163,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 			defer wg.Done()
 
 			for line := range lines {
-				ge := GithubEventJson{}
+				ge := GithubEventJSON{}
 				err := json.Unmarshal([]byte(line), &ge)
 				if err != nil {
 					log.Printf("failed to parse json.\n file: %s\n err %+v\n", url, err)
@@ -179,7 +177,6 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 					}
 				}
 			}
-			return
 		}()
 	}
 
@@ -215,7 +212,10 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 	wg.Wait()
 
-	ad.engine.Insert(file)
+	_, err = ad.engine.Insert(file)
+	if err != nil {
+		return err
+	}
 
 	return zr.Close()
 }

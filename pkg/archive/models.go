@@ -13,7 +13,7 @@ type ArchiveFile struct {
 }
 
 func NewArchiveFile(year, month, day, hour int) *ArchiveFile {
-	dt := time.Date(int(year), time.Month(month), int(day), int(hour), 0, 0, 0, time.UTC)
+	dt := time.Date(year, time.Month(month), day, hour, 0, 0, 0, time.UTC)
 	return &ArchiveFile{
 		CreatedAt: dt,
 		ID:        dt.Unix(),
@@ -27,31 +27,31 @@ type Repo struct {
 type GithubEvent struct {
 	ID        int64
 	Type      string
-	RepoId    int64
+	RepoID    int64
 	CreatedAt time.Time
 	Payload   *simplejson.Json
 	Actor     *simplejson.Json
 }
 
-func (gej *GithubEventJson) CreateGithubEvent() *GithubEvent {
+func (gej *GithubEventJSON) CreateGithubEvent() *GithubEvent {
 	id, _ := strconv.ParseInt(gej.ID, 10, 0)
 
-	var repoId int64
+	var repoID int64
 	if gej.Repo != nil {
-		repoId = gej.Repo.ID
+		repoID = gej.Repo.ID
 	}
 
 	return &GithubEvent{
 		ID:        id,
 		Type:      gej.Type,
-		RepoId:    repoId,
+		RepoID:    repoID,
 		CreatedAt: gej.CreatedAt,
 		Payload:   gej.Payload,
 		Actor:     gej.Actor,
 	}
 }
 
-type GithubEventJson struct {
+type GithubEventJSON struct {
 	ID        string           `json:"id"`
 	Type      string           `json:"type"`
 	Repo      *Repo            `json:"repo"`
@@ -60,9 +60,9 @@ type GithubEventJson struct {
 	CreatedAt time.Time        `json:"created_at"`
 }
 
-type ActorJson struct {
+type ActorJSON struct {
 	ID           int64  `json:"id"`
 	Login        string `json:"login"`
 	DisplayLogin string `json:"display_login"`
-	GravatarId   string `json:"gravatar_id"`
+	GravatarID   string `json:"gravatar_id"`
 }

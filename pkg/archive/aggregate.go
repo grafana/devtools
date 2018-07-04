@@ -59,10 +59,10 @@ var (
 func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStats, error) {
 	aggregations := map[int64]*AggregatedStats{}
 
-	var issueCount int64 = 0
-	var issueCommentCount int64 = 0
-	var prCount int64 = 0
-	var watcherCount int64 = 0
+	var issueCount int64
+	var issueCommentCount int64
+	var prCount int64
+	var watcherCount int64
 
 	for _, e := range events {
 		id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), 0, 0, 0, 0, time.UTC).UTC().Unix()
