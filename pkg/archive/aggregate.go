@@ -7,6 +7,12 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
+var (
+	EventTypeIssue   = "IssuesEvent"
+	EventTypeComment = "IssueCommentEvent"
+	WatchEvent       = "WatchEvent"
+)
+
 type AggregatedStats struct {
 	ID                int64
 	IssueCount        int64
@@ -49,12 +55,6 @@ func (a *Aggregator) Aggregate() error {
 
 	return nil
 }
-
-var (
-	EventTypeIssue   = "IssuesEvent"
-	EventTypeComment = "IssueCommentEvent"
-	WatchEvent       = "WatchEvent"
-)
 
 func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStats, error) {
 	aggregations := map[int64]*AggregatedStats{}

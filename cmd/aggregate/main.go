@@ -11,11 +11,14 @@ import (
 var (
 	database         = ""
 	connectionString = ""
+	maxDurationMin   int64
 )
 
 func main() {
 	flag.StringVar(&database, "database", "", "database type")
 	flag.StringVar(&connectionString, "connectionString", "", "connection string")
+	flag.Int64Var(&maxDurationMin, "maxDurationMin", 60, "maxium time this application should run. will shutdown gracefully after")
+
 	flag.Parse()
 
 	// f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -34,7 +37,7 @@ func main() {
 	doneChan := make(chan time.Time)
 	aggregator := archive.NewAggregator(engine, doneChan)
 	go func() {
-		<-time.After(time.Second * 1)
+		<-time.After(time.Duration(maxDurationMin * int64(time.Minute)))
 		close(doneChan)
 	}()
 

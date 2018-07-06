@@ -82,7 +82,7 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 			case u := <-downloadUrls:
 				err := ad.download(u)
 				if err != nil {
-					log.Printf("error: %+v failed to download file. error: %v\n", u, err)
+					log.Printf("failed to download file. error: %+v\n", err)
 				}
 			}
 		}
