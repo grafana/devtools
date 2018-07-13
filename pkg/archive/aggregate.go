@@ -23,6 +23,7 @@ var (
 	//GollumEventType             = "GollumEvent"
 )
 
+// AggregatedStats is an aggregated view of
 type AggregatedStats struct {
 	ID                      int64
 	IssueCount              int64
@@ -32,15 +33,18 @@ type AggregatedStats struct {
 	PullRequestCommentCount int64
 }
 
+// Aggregator is responsible for aggregating stats based on github events
 type Aggregator struct {
 	engine    *xorm.Engine
 	closeChan chan time.Time
 }
 
+// NewAggregator returns a new Aggregator
 func NewAggregator(engine *xorm.Engine, closeChan chan time.Time) *Aggregator {
 	return &Aggregator{engine: engine, closeChan: closeChan}
 }
 
+// Aggregate will read github events from the database and write back an aggregated view
 func (a *Aggregator) Aggregate() error {
 	events, err := a.findEvents()
 	if err != nil {
@@ -71,7 +75,8 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 	aggregations := map[int64]*AggregatedStats{}
 
 	for _, e := range events {
-		id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), e.CreatedAt.Hour(), 0, 0, 0, time.UTC).UTC().Unix()
+		//id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), e.CreatedAt.Hour(), 0, 0, 0, time.UTC).UTC().Unix()
+		id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), 0, 0, 0, 0, time.UTC).UTC().Unix()
 
 		agg, exists := aggregations[id]
 		if !exists {
@@ -174,12 +179,23 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 }
 
 func (a *Aggregator) findEvents() ([]*GithubEvent, error) {
-	events := []*GithubEvent{}
+	result := []*GithubEvent{}
 
-	err := a.engine.Limit(100000, 0).Find(&events)
-	if err != nil {
-		log.Fatalf("failed to query. error: %v", err)
+	rowCount := 0
+	stepSize := 5000
+
+	for {
+		events := []*GithubEvent{}
+		err := a.engine.Limit(stepSize, rowCount*stepSize).Find(&events)
+		if err != nil {
+			log.Fatalf("failed to query. error: %v", err)
+		}
+
+		if len(events) == 0 {
+			return result, nil
+		}
+
+		result = append(result, events...)
+		rowCount++
 	}
-
-	return events, nil
 }

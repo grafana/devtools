@@ -26,8 +26,8 @@ func TestAggregateIssueCount(t *testing.T) {
 		{
 			Aggregations: map[int64]*AggregatedStats{
 				dayOne.UTC().Unix():   &AggregatedStats{IssueCount: 1},
-				dayTwo.UTC().Unix():   &AggregatedStats{IssueCount: 4},
-				dayThree.UTC().Unix(): &AggregatedStats{IssueCount: 5},
+				dayTwo.UTC().Unix():   &AggregatedStats{IssueCount: 3},
+				dayThree.UTC().Unix(): &AggregatedStats{IssueCount: 1},
 			},
 			Events: []*GithubEvent{
 				mockGithubEvent(EventTypeIssue, dayOne.Add(time.Hour).UTC(), jsonIssueOpened),
