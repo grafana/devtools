@@ -17,11 +17,11 @@ archive: build
 docker-build:
 	docker build --tag grafana/github-repo-metrics:${VERSION} .
 
-docker-push: 
+docker-push:
 	docker push grafana/github-repo-metrics:${VERSION}
 
 archive-prod: build
 	./bin/archive -database="sqlite3" -connectionString="./test.db" -archiveUrl="http://data.githubarchive.org/%d-%02d-%02d-%d.json.gz"
 
-aggregate: build 
-	./bin/aggregate -database="sqlite3" -connectionString="./test.db" 
+aggregate: build
+	./bin/aggregate -database="sqlite3" -connectionString="./test2.db"

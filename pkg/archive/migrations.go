@@ -61,6 +61,7 @@ func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) 
 			{Name: "issue_comment_count", Type: migrator.DB_BigInt},
 			{Name: "pr_count", Type: migrator.DB_BigInt},
 			{Name: "watcher_count", Type: migrator.DB_BigInt},
+			{Name: "pull_request_comment_count", Type: migrator.DB_BigInt},
 		},
 	}
 

@@ -17,6 +17,7 @@ testdata/*.json.gz
 main
 test.db
 test.db-journal
+test2.db
 log.log
 
 archive

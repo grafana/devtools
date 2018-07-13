@@ -54,6 +54,7 @@ type ArchiveDownloader struct {
 	startDate time.Time
 	stopDate  time.Time
 	doneChan  chan time.Time
+	eventChan chan *GithubEvent
 }
 
 func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
@@ -64,6 +65,7 @@ func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, star
 		startDate: startDate,
 		stopDate:  stopDate,
 		doneChan:  doneChan,
+		eventChan: make(chan *GithubEvent, 10),
 	}
 }
 
@@ -89,6 +91,32 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 	}(index)
 }
 
+func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan chan *GithubEvent, done chan bool) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for {
+			select {
+			case <-done:
+				return
+			case event := <-eventChan:
+				_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
+				if err != nil {
+					//return err
+					log.Fatalf("failed to delete github event. error: %+v", err)
+				}
+
+				_, err = ad.engine.Insert(event)
+				if err != nil {
+					log.Fatalf("failed to insert into database. error: %+v", err)
+				}
+				//return err
+			}
+		}
+	}()
+}
+
 func (ad *ArchiveDownloader) DownloadEvents() error {
 	start := time.Now()
 
@@ -109,6 +137,8 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	for i := 0; i < maxGoRoutines; i++ {
 		ad.spawnWorker(i, &wg, downloadUrls, done)
 	}
+
+	ad.spawnDatabaseWriter(&wg, ad.eventChan, done)
 
 	go func() {
 		i := 0
@@ -153,12 +183,13 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 				return
 			}
 
-			for _, v := range ad.repoIds {
-				if ge.Repo.ID == v {
-					ad.insertIntoDatabase(ge.CreateGithubEvent())
-					eventCount++
-				}
-			}
+			//for _, v := range ad.repoIds {
+			//if ge.Repo.ID == v {
+			//ad.insertIntoDatabase(ge.CreateGithubEvent())
+			ad.eventChan <- ge.CreateGithubEvent()
+			eventCount++
+			//}
+			//}
 		}
 	}()
 }
