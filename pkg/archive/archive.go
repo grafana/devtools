@@ -163,10 +163,13 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 	}()
 }
 
-func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
+func (ad *ArchiveDownloader) buildDownloadURL(file *ArchiveFile) string {
 	ft := time.Unix(file.ID, 0).UTC()
-	url := fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
+	return fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
+}
 
+func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
+	url := ad.buildDownloadURL(file)
 	res, err := http.Get(url)
 	if err != nil {
 		return errors.Wrap(err, "failed to download json file")
@@ -183,10 +186,13 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 
 	lines := make(chan string)
 	wg := sync.WaitGroup{}
+
+	//spawn go routines that will marshal strings to json
 	for i := 0; i <= maxGoProcess; i++ {
 		ad.spawnLineProcessor(i, &wg, lines)
 	}
 
+	// decompress response body and send to workers.
 	for {
 		zr.Multistream(false)
 
