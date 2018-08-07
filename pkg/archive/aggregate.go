@@ -115,7 +115,7 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 				case "started":
 					agg.WatcherCount++
 				default:
-					log.Printf("Unknown issue action: %s", action)
+					log.Fatalf("Unknown issue action: %s \n", action)
 				}
 			}
 		}
@@ -169,7 +169,7 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 				case "created":
 					agg.IssueCommentCount++
 				default:
-					log.Println("unknown comment type: ", agg.IssueCommentCount)
+					log.Fatalln("unknown comment type: ", agg.IssueCommentCount)
 				}
 			}
 		}
