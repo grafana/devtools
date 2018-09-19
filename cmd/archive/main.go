@@ -27,7 +27,7 @@ func main() {
 	flag.StringVar(&database, "database", "", "description")
 	flag.StringVar(&archiveUrl, "archiveUrl", "default?", "description")
 	flag.StringVar(&startDateFlag, "startDate", "2015-01-01", "start date for parsing events")
-	flag.StringVar(&stopDateFlag, "stopDate", "2015-01-03", "last date the program should download events for")
+	flag.StringVar(&stopDateFlag, "stopDate", "2018-01-01", "last date the program should download events for")
 	flag.Int64Var(&maxDurationMin, "maxDurationMin", 60, "maxium time this application should run. will shutdown gracefully after")
 	flag.Parse()
 
@@ -63,7 +63,7 @@ func main() {
 	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate, doneChan)
 	go func() {
 		<-time.After(time.Duration(maxDurationMin * int64(time.Minute)))
-		//<-time.After(time.Duration(time.Second / 10))
+		//<-time.After(time.Duration(time.Second * 3))
 		close(doneChan)
 	}()
 

@@ -183,13 +183,13 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 				return
 			}
 
-			//for _, v := range ad.repoIds {
-			//if ge.Repo.ID == v {
-			//ad.insertIntoDatabase(ge.CreateGithubEvent())
-			ad.eventChan <- ge.CreateGithubEvent()
-			eventCount++
-			//}
-			//}
+			for _, v := range ad.repoIds {
+				if ge.Repo.ID == v {
+					//ad.insertIntoDatabase(ge.CreateGithubEvent())
+					ad.eventChan <- ge.CreateGithubEvent()
+					eventCount++
+				}
+			}
 		}
 	}()
 }

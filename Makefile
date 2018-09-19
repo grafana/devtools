@@ -21,7 +21,16 @@ docker-push:
 	docker push grafana/github-repo-metrics:${VERSION}
 
 archive-prod: build
-	./bin/archive -database="sqlite3" -connectionString="./test.db" -archiveUrl="http://data.githubarchive.org/%d-%02d-%02d-%d.json.gz"
+	./bin/archive \
+		-database="postgres" \
+		-connectionString="postgresql://grafana:password@localhost:5432/grafana?sslmode=disable" \
+		-maxDurationMin=5 \
+		-archiveUrl="http://data.githubarchive.org/%d-%02d-%02d-%d.json.gz"
 
 aggregate: build
 	./bin/aggregate -database="sqlite3" -connectionString="./test2.db"
+
+aggregate-prod: build
+	./bin/aggregate \
+		-database="postgres" \
+		-connectionString="postgresql://grafana:password@localhost:5432/grafana?sslmode=disable" 
