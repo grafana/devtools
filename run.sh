@@ -1,3 +1,3 @@
 #/bin/sh
 
-/$BIN -database=$DB -connectionString=$CONNSTRING -archiveUrl=$ARCHIVE_URL
+/$BIN -database=$DB -connectionString=$CONNSTRING -archiveUrl=$ARCHIVE_URL -maxDurationMin=$MAXDURATIONMIN

@@ -15,7 +15,10 @@ archive: build
 	./bin/archive -database="sqlite3" -connectionString="./test.db" -maxDurationMin=15 -archiveUrl="http://localhost:8100/%d-%02d-%02d-%d.json.gz"
 
 docker-build:
-	docker build --tag grafana/github-repo-metrics:${VERSION} .
+	cp ./bin/archive ./docker/github-stats-archive
+	cp ./bin/aggregate ./docker/github-stats-aggregate
+	docker build --tag grafana/github-repo-metrics-archive:${VERSION} ./docker/archive
+	docker build --tag grafana/github-repo-metrics-aggregate:${VERSION} ./docker/aggregate
 
 docker-push:
 	docker push grafana/github-repo-metrics:${VERSION}

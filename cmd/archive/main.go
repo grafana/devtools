@@ -27,17 +27,9 @@ func main() {
 	flag.StringVar(&database, "database", "", "description")
 	flag.StringVar(&archiveUrl, "archiveUrl", "default?", "description")
 	flag.StringVar(&startDateFlag, "startDate", "2015-01-01", "start date for parsing events")
-	flag.StringVar(&stopDateFlag, "stopDate", "2015-01-03", "last date the program should download events for")
+	flag.StringVar(&stopDateFlag, "stopDate", "", "last date the program should download events for")
 	flag.Int64Var(&maxDurationMin, "maxDurationMin", 60, "maxium time this application should run. will shutdown gracefully after")
 	flag.Parse()
-
-	// f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	log.Fatalf("error opening file: %v", err)
-	// }
-	// defer f.Close()
-
-	// log.SetOutput(f)
 
 	startDate, err := time.Parse(simpleDateFormat, startDateFlag)
 	if err != nil {
