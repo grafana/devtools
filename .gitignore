@@ -20,6 +20,7 @@ test.db-journal
 test2.db
 log.log
 
-archive
-aggregate
-cmd/bots/main
+cmd/archive/archive
+cmd/aggregate/aggregate
+cmd/bots/bots
+.uptodate
