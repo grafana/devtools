@@ -1,4 +1,4 @@
-.PHONY: all test clean images protos
+.PHONY: all test clean images
 .DEFAULT_GOAL := all
 
 # stolen and from https://github.com/cortexproject/cortex and modified for our needs
@@ -33,16 +33,12 @@ images:
 	$(info $(IMAGE_NAMES))
 	@echo > /dev/null
 
-# Generating proto code is automated.
-#PROTO_DEFS := $(shell find . $(DONT_FIND) -type f -name '*.proto' -print)
-
 # Building binaries is now automated.  The convention is to build a binary
 # for every directory with main.go in it, in the ./cmd directory.
 MAIN_GO := $(shell find . $(DONT_FIND) -type f -name 'main.go' -print)
 EXES := $(foreach exe, $(patsubst ./cmd/%/main.go, %, $(MAIN_GO)), ./cmd/$(exe)/$(exe))
 GO_FILES := $(shell find . $(DONT_FIND) -name cmd -prune -o -type f -name '*.go' -print)
 define dep_exe
-$(1): $(dir $(1))/main.go $(GO_FILES) $(PROTO_GOS)
 $(dir $(1))$(UPTODATE): $(1)
 endef
 $(foreach exe, $(EXES), $(eval $(call dep_exe, $(exe))))
@@ -58,6 +54,6 @@ $(EXES):
 
 clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
-	rm -rf $(UPTODATE_FILES) $(EXES) $(PROTO_GOS) .cache
+	rm -rf $(UPTODATE_FILES) $(EXES) .cache
 	go clean ./...
 
