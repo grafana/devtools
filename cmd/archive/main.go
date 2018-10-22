@@ -11,45 +11,22 @@ import (
 )
 
 var (
-	//connectionString = ""
-	//database         = ""
-	//archiveUrl       = ""
-	//startDateFlag  = ""
-	//stopDateFlag   = ""
-	//maxDurationMin int64
-
 	repoIds = []int64{15111821}
 
 	simpleDateFormat = "2006-01-02"
 )
 
 func main() {
-	//flag.StringVar(&connectionString, "connectionString", "", "description")
-	//flag.StringVar(&database, "database", "", "description")
 	database := lookupEnvString("STATS_DB")
 	connectionString := lookupEnvString("STATS_CONNSTRING")
+	archiveUrl := lookupEnvString("STATS_ARCHIVEURL")
+	startDateFlag := lookupEnvString("STATS_STARTDATEFLAG")
+	stopDateFlag := lookupEnvString("STATS_STOPDATEFLAG")
 	maxDurationMinString := lookupEnvString("STATS_MAXDURATION")
 	maxDurationMin, err := strconv.ParseInt(maxDurationMinString, 10, 64)
 	if err != nil {
 		log.Fatalf("could not parse %s to int64", maxDurationMinString)
 	}
-
-	archiveUrl := lookupEnvString("STATS_ARCHIVEURL")
-	startDateFlag := lookupEnvString("STATS_STARTDATEFLAG")
-	stopDateFlag := lookupEnvString("STATS_STOPDATEFLAG")
-	//flag.StringVar(&archiveUrl, "archiveUrl", "default?", "description")
-	//flag.StringVar(&startDateFlag, "startDate", "2015-01-01", "start date for parsing events")
-	//flag.StringVar(&stopDateFlag, "stopDate", "2018-01-01", "last date the program should download events for")
-	//flag.Int64Var(&maxDurationMin, "maxDurationMin", 60, "maxium time this application should run. will shutdown gracefully after")
-	//flag.Parse()
-
-	// f, err := os.OpenFile("log.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	// if err != nil {
-	// 	log.Fatalf("error opening file: %v", err)
-	// }
-	// defer f.Close()
-
-	// log.SetOutput(f)
 
 	startDate, err := time.Parse(simpleDateFormat, startDateFlag)
 	if err != nil {
