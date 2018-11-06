@@ -1,0 +1,9 @@
+version: "2"
+services:
+  prometheus:
+    image: grafana/github-stats-archive:latest
+    network_mode: host
+    command:
+      - '-database=postgres'
+      - '-connstring=postgresql://grafana:password@localhost:5432/grafana?sslmode=disable'
+      - '-maxDuration=10m'

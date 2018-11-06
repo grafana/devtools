@@ -1,22 +1,24 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/grafana/github-repo-metrics/pkg/archive"
 )
 
 func main() {
-	database := lookupEnvString("STATS_DB")
-	connectionString := lookupEnvString("STATS_CONNSTRING")
-	maxDurationMinString := lookupEnvString("STATS_MAXDURATION")
-	maxDurationMin, err := strconv.ParseInt(maxDurationMinString, 10, 64)
-	if err != nil {
-		log.Fatalf("could not parse %s to int64", maxDurationMinString)
-	}
+	var (
+		database         string
+		connectionString string
+		maxDuration      time.Duration
+	)
+	flag.StringVar(&database, "database", "", "database type to use")
+	flag.StringVar(&connectionString, "connstring", "", "connectionstring to the database where the aggregator can find raw data")
+	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "max duration for how long the process should be running")
+	flag.Parse()
 
 	engine, err := archive.InitDatabase(database, connectionString)
 	if err != nil {
@@ -26,7 +28,7 @@ func main() {
 	doneChan := make(chan time.Time)
 	aggregator := archive.NewAggregator(engine, doneChan)
 	go func() {
-		<-time.After(time.Duration(maxDurationMin * int64(time.Minute)))
+		<-time.After(time.Duration(maxDuration))
 		close(doneChan)
 	}()
 

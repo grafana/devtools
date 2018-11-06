@@ -1,9 +1,9 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/grafana/github-repo-metrics/pkg/archive"
@@ -17,16 +17,22 @@ var (
 )
 
 func main() {
-	database := lookupEnvString("STATS_DB")
-	connectionString := lookupEnvString("STATS_CONNSTRING")
-	archiveUrl := lookupEnvString("STATS_ARCHIVEURL")
-	startDateFlag := lookupEnvString("STATS_STARTDATEFLAG")
-	stopDateFlag := lookupEnvString("STATS_STOPDATEFLAG")
-	maxDurationMinString := lookupEnvString("STATS_MAXDURATION")
-	maxDurationMin, err := strconv.ParseInt(maxDurationMinString, 10, 64)
-	if err != nil {
-		log.Fatalf("could not parse %s to int64", maxDurationMinString)
-	}
+	var (
+		database         string
+		connectionString string
+		archiveUrl       string
+		startDateFlag    string
+		stopDateFlag     string
+		maxDuration      time.Duration
+	)
+
+	flag.StringVar(&database, "database", "", "database type")
+	flag.StringVar(&connectionString, "connstring", "", "")
+	flag.StringVar(&archiveUrl, "archiveUrl", "https://data.githubarchive.org/%d-%02d-%02d-%d.json.gz", "")
+	flag.StringVar(&startDateFlag, "startDateFlag", "2015-01-01", "")
+	flag.StringVar(&stopDateFlag, "stopDateFlag", "", "")
+	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "")
+	flag.Parse()
 
 	startDate, err := time.Parse(simpleDateFormat, startDateFlag)
 	if err != nil {
@@ -51,8 +57,7 @@ func main() {
 	doneChan := make(chan time.Time)
 	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate, doneChan)
 	go func() {
-		<-time.After(time.Duration(maxDurationMin * int64(time.Minute)))
-		//<-time.After(time.Duration(time.Second * 3))
+		<-time.After(maxDuration)
 		close(doneChan)
 	}()
 
