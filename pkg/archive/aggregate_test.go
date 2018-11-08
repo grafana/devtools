@@ -30,15 +30,15 @@ func TestAggregateIssueCount(t *testing.T) {
 				dayThree.UTC().Unix(): &AggregatedStats{IssueCount: 1},
 			},
 			Events: []*GithubEvent{
-				mockGithubEvent(EventTypeIssue, dayOne.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(eventTypeIssue, dayOne.Add(time.Hour).UTC(), jsonIssueOpened),
 
-				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
-				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
-				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
-				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
-				mockGithubEvent(EventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueClosed),
+				mockGithubEvent(eventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(eventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(eventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(eventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(eventTypeIssue, dayTwo.Add(time.Hour).UTC(), jsonIssueClosed),
 
-				mockGithubEvent(EventTypeIssue, dayThree.Add(time.Hour).UTC(), jsonIssueOpened),
+				mockGithubEvent(eventTypeIssue, dayThree.Add(time.Hour).UTC(), jsonIssueOpened),
 			},
 		},
 	}

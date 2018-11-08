@@ -8,19 +8,18 @@ import (
 )
 
 var (
-	EventTypeIssue              = "IssuesEvent"
-	EventTypeComment            = "IssueCommentEvent"
-	WatchEvent                  = "WatchEvent"
-	PushEventType               = "PushEvent"
-	PullRequestEventType        = "PullRequestEvent"
-	PullRequestCommentEventType = "PullRequestReviewCommentEvent"
-	ReleaseEventType            = "ReleaseEvent"
-	ForkEventType               = "ForkEvent"
-	MemberEventType             = "MemberEvent"
-	CreateEventType             = "CreateEvent"
-	DeleteEventType             = "DeleteEvent"
-	CommitCommentEvent          = "CommitCommentEvent"
-	//GollumEventType             = "GollumEvent"
+	eventTypeIssue              = "IssuesEvent"
+	eventTypeComment            = "IssueCommentEvent"
+	watchEventType              = "WatchEvent"
+	pushEventType               = "PushEvent"
+	pullRequestEventType        = "PullRequestEvent"
+	pullRequestCommentEventType = "PullRequestReviewCommentEvent"
+	releaseEventType            = "ReleaseEvent"
+	forkEventType               = "ForkEvent"
+	memberEventType             = "MemberEvent"
+	createEventType             = "CreateEvent"
+	deleteEventType             = "DeleteEvent"
+	commitCommentEvent          = "CommitCommentEvent"
 )
 
 // AggregatedStats is an aggregated view of
@@ -84,98 +83,103 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 			aggregations[id] = agg
 		}
 
-		if e.Type == EventTypeIssue {
-			action, err := e.Payload.Get("action").String()
-			if err != nil {
-				log.Fatalf("failed to get action. error: %+v\n", err)
-			}
+		a.applyEvent(agg, e)
+	}
 
-			if action != "" {
-				switch action {
-				case "opened":
-					fallthrough
-				case "reopened":
-					agg.IssueCount++
-				case "closed":
-					agg.IssueCount--
-				default:
-					log.Printf("Unknown issue action: %s", action)
-				}
-			}
+	return aggregations, nil
+}
+
+func (a *Aggregator) applyEvent(agg *AggregatedStats, e *GithubEvent) {
+
+	if e.Type == eventTypeIssue {
+		action, err := e.Payload.Get("action").String()
+		if err != nil {
+			log.Fatalf("failed to get action. error: %+v\n", err)
 		}
 
-		if e.Type == WatchEvent {
-			action, err := e.Payload.Get("action").String()
-			if err != nil {
-				log.Fatalf("failed to get action. error: %+v\n", err)
-			}
-
-			if action != "" {
-				switch action {
-				case "started":
-					agg.WatcherCount++
-				default:
-					log.Fatalf("Unknown issue action: %s \n", action)
-				}
-			}
-		}
-
-		if e.Type == PullRequestCommentEventType {
-			action, err := e.Payload.Get("action").String()
-			if err != nil {
-				log.Fatalf("failed to get action. error: %+v\n", err)
-			}
-
-			if action != "" {
-				switch action {
-				case "closed":
-					agg.PullRequestCommentCount--
-				case "created":
-					agg.PullRequestCommentCount++
-				default:
-					log.Fatalln("unknown action: ", action)
-				}
-			}
-		}
-
-		if e.Type == PullRequestEventType {
-			action, err := e.Payload.Get("action").String()
-			if err != nil {
-				log.Fatalf("failed to get action. error: %+v\n", err)
-			}
-
-			if action != "" {
-				switch action {
-				case "closed":
-					agg.PrCount--
-				case "reopened":
-					fallthrough
-				case "opened":
-					agg.PrCount++
-				default:
-					log.Fatalln("unknown action: ", action)
-				}
-			}
-		}
-
-		if e.Type == EventTypeComment {
-			action, err := e.Payload.Get("action").String()
-			if err != nil {
-				log.Fatalf("failed to get action. error: %+v\n", err)
-			}
-
-			if action != "" {
-				switch action {
-				case "created":
-					agg.IssueCommentCount++
-				default:
-					log.Fatalln("unknown comment type: ", agg.IssueCommentCount)
-				}
+		if action != "" {
+			switch action {
+			case "opened":
+				fallthrough
+			case "reopened":
+				agg.IssueCount++
+			case "closed":
+				agg.IssueCount--
+			default:
+				log.Printf("Unknown issue action: %s", action)
 			}
 		}
 	}
 
-	return aggregations, nil
+	if e.Type == watchEventType {
+		action, err := e.Payload.Get("action").String()
+		if err != nil {
+			log.Fatalf("failed to get action. error: %+v\n", err)
+		}
+
+		if action != "" {
+			switch action {
+			case "started":
+				agg.WatcherCount++
+			default:
+				log.Fatalf("Unknown issue action: %s \n", action)
+			}
+		}
+	}
+
+	if e.Type == pullRequestCommentEventType {
+		action, err := e.Payload.Get("action").String()
+		if err != nil {
+			log.Fatalf("failed to get action. error: %+v\n", err)
+		}
+
+		if action != "" {
+			switch action {
+			case "closed":
+				agg.PullRequestCommentCount--
+			case "created":
+				agg.PullRequestCommentCount++
+			default:
+				log.Fatalln("unknown action: ", action)
+			}
+		}
+	}
+
+	if e.Type == pullRequestEventType {
+		action, err := e.Payload.Get("action").String()
+		if err != nil {
+			log.Fatalf("failed to get action. error: %+v\n", err)
+		}
+
+		if action != "" {
+			switch action {
+			case "closed":
+				agg.PrCount--
+			case "reopened":
+				fallthrough
+			case "opened":
+				agg.PrCount++
+			default:
+				log.Fatalln("unknown action: ", action)
+			}
+		}
+	}
+
+	if e.Type == eventTypeComment {
+		action, err := e.Payload.Get("action").String()
+		if err != nil {
+			log.Fatalf("failed to get action. error: %+v\n", err)
+		}
+
+		if action != "" {
+			switch action {
+			case "created":
+				agg.IssueCommentCount++
+			default:
+				log.Fatalln("unknown comment type: ", agg.IssueCommentCount)
+			}
+		}
+	}
 }
 
 func (a *Aggregator) findEvents() ([]*GithubEvent, error) {
