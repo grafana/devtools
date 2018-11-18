@@ -74,8 +74,7 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 	aggregations := map[int64]*AggregatedStats{}
 
 	for _, e := range events {
-		//id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), e.CreatedAt.Hour(), 0, 0, 0, time.UTC).UTC().Unix()
-		id := time.Date(e.CreatedAt.Year(), e.CreatedAt.Month(), e.CreatedAt.Day(), 0, 0, 0, 0, time.UTC).UTC().Unix()
+		id := aggregationKey(e.CreatedAt)
 
 		agg, exists := aggregations[id]
 		if !exists {
@@ -87,6 +86,11 @@ func (a *Aggregator) aggregate(events []*GithubEvent) (map[int64]*AggregatedStat
 	}
 
 	return aggregations, nil
+}
+
+func aggregationKey(createdAt time.Time) int64 {
+	//return time.Date(createdAt.Year(), createdAt.Month(), createdAt.Day(), createdAt.Hour(), 0, 0, 0, time.UTC).UTC().Unix()
+	return time.Date(createdAt.Year(), createdAt.Month(), createdAt.Day(), 0, 0, 0, 0, time.UTC).UTC().Unix()
 }
 
 func (a *Aggregator) applyEvent(agg *AggregatedStats, e *GithubEvent) {
