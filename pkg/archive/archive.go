@@ -9,12 +9,14 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	"github.com/grafana/github-repo-metrics/pkg/common"
+	"github.com/grafana/grafana/pkg/components/simplejson"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
@@ -50,18 +52,18 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, 
 type ArchiveDownloader struct {
 	engine    *xorm.Engine
 	url       string
-	repoIds   []int64
+	orgNames  []string
 	startDate time.Time
 	stopDate  time.Time
 	doneChan  chan time.Time
 	eventChan chan *common.GithubEvent
 }
 
-func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
+func NewArchiveDownloader(engine *xorm.Engine, url string, orgNames []string, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
 	return &ArchiveDownloader{
 		engine:    engine,
 		url:       url,
-		repoIds:   repoIds,
+		orgNames:  orgNames,
 		startDate: startDate,
 		stopDate:  stopDate,
 		doneChan:  doneChan,
@@ -115,6 +117,7 @@ func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan c
 	}()
 }
 
+// DownloadEvents start to download all archive events
 func (ad *ArchiveDownloader) DownloadEvents() error {
 	start := time.Now()
 
@@ -181,10 +184,11 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 				return
 			}
 
-			for _, v := range ad.repoIds {
-				if ge.Repo.ID == v {
-					//ad.insertIntoDatabase(ge.CreateGithubEvent())
-					ad.eventChan <- ge.CreateGithubEvent()
+			for _, v := range ad.orgNames {
+				if ge.Org != nil && ge.Org.Login == v {
+					id, _ := strconv.ParseInt(ge.ID, 10, 0)
+					fullJSON, _ := simplejson.NewJson([]byte(line))
+					ad.eventChan <- &common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: fullJSON}
 					eventCount++
 				}
 			}

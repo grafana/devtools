@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
+	"strings"
 	"time"
 
 	"github.com/grafana/github-repo-metrics/pkg/archive"
@@ -11,8 +11,6 @@ import (
 )
 
 var (
-	repoIds = []int64{15111821}
-
 	simpleDateFormat = "2006-01-02"
 )
 
@@ -23,6 +21,8 @@ func main() {
 		archiveUrl       string
 		startDateFlag    string
 		stopDateFlag     string
+		orgNamesFlag     string
+		orgNames         []string
 		maxDuration      time.Duration
 	)
 
@@ -31,6 +31,7 @@ func main() {
 	flag.StringVar(&archiveUrl, "archiveUrl", "https://data.githubarchive.org/%d-%02d-%02d-%d.json.gz", "")
 	flag.StringVar(&startDateFlag, "startDateFlag", "2015-01-01", "")
 	flag.StringVar(&stopDateFlag, "stopDateFlag", "", "")
+	flag.StringVar(&orgNamesFlag, "orgNames", "grafana", "comma sepearted list of orgs to download all events for")
 	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "")
 	flag.Parse()
 
@@ -49,13 +50,14 @@ func main() {
 		}
 	}
 
+	orgNames = strings.Split(orgNamesFlag, ",")
 	engine, err := archive.InitDatabase(database, connectionString)
 	if err != nil {
 		log.Fatalf("migration failed. error: %v", err)
 	}
 
 	doneChan := make(chan time.Time)
-	ad := archive.NewArchiveDownloader(engine, archiveUrl, repoIds, startDate, stopDate, doneChan)
+	ad := archive.NewArchiveDownloader(engine, archiveUrl, orgNames, startDate, stopDate, doneChan)
 	go func() {
 		<-time.After(maxDuration)
 		close(doneChan)
@@ -65,13 +67,4 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to download archive files. error: %v", err)
 	}
-}
-
-func lookupEnvString(name string) string {
-	value, exists := os.LookupEnv(name)
-	if !exists {
-		log.Fatalf("missing env variable %s", name)
-	}
-
-	return value
 }

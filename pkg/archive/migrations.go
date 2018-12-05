@@ -43,11 +43,8 @@ func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) 
 		Name: "github_event",
 		Columns: []*migrator.Column{
 			{Name: "id", Type: migrator.DB_BigInt},
-			{Name: "type", Type: migrator.DB_NVarchar, Length: 255},
-			{Name: "repo_id", Type: migrator.DB_BigInt},
 			{Name: "created_at", Type: migrator.DB_DateTime},
-			{Name: "actor", Type: migrator.DB_Text},
-			{Name: "payload", Type: migrator.DB_Text},
+			{Name: "data", Type: migrator.DB_Text},
 		},
 	}
 
