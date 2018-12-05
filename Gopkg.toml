@@ -56,3 +56,15 @@
 [[constraint]]
   name = "github.com/daniellee/go-github"
   revision = "0c1a3bf8dc0b8c1f14b1634d4c142a192cedf466"
+
+[[constraint]]
+  name = "github.com/lib/pq"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/mailru/easyjson"
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
+
+[[constraint]]
+  name = "github.com/smartystreets/goconvey"
+  version = "1.6.3"
