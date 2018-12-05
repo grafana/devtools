@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/grafana/github-repo-metrics/pkg/common"
 )
 
 var i = 0
@@ -27,7 +29,7 @@ func keepSearching(uri string) {
 	ioutil.WriteFile(fmt.Sprintf("events/response%v.json", i), body, 777)
 	i++
 
-	model := []GithubEventJSON{}
+	model := []common.GithubEventJSON{}
 
 	json.Unmarshal(body, &model)
 

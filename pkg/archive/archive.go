@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-xorm/xorm"
-
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
+	"github.com/grafana/github-repo-metrics/pkg/common"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
@@ -25,17 +25,17 @@ const maxGoProcess = 6
 
 var eventCount int64
 
-func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*ArchiveFile, st, stopDate time.Time) []*ArchiveFile {
-	var result []*ArchiveFile
+func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, st, stopDate time.Time) []*common.ArchiveFile {
+	var result []*common.ArchiveFile
 
 	// create lookup index based in ArchiveFile ID
-	index := map[int64]*ArchiveFile{}
+	index := map[int64]*common.ArchiveFile{}
 	for _, a := range archFiles {
 		index[a.ID] = a
 	}
 
 	for st.Unix() < stopDate.Unix() {
-		archivedFile := NewArchiveFile(st.Year(), int(st.Month()), st.Day(), st.Hour())
+		archivedFile := common.NewArchiveFile(st.Year(), int(st.Month()), st.Day(), st.Hour())
 		_, exist := index[archivedFile.ID]
 		if !exist {
 			result = append(result, archivedFile)
@@ -54,7 +54,7 @@ type ArchiveDownloader struct {
 	startDate time.Time
 	stopDate  time.Time
 	doneChan  chan time.Time
-	eventChan chan *GithubEvent
+	eventChan chan *common.GithubEvent
 }
 
 func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
@@ -65,11 +65,11 @@ func NewArchiveDownloader(engine *xorm.Engine, url string, repoIds []int64, star
 		startDate: startDate,
 		stopDate:  stopDate,
 		doneChan:  doneChan,
-		eventChan: make(chan *GithubEvent, 10),
+		eventChan: make(chan *common.GithubEvent, 10),
 	}
 }
 
-func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, downloadUrls chan *ArchiveFile, done chan bool) {
+func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, downloadUrls chan *common.ArchiveFile, done chan bool) {
 	wg.Add(1)
 	go func(workerID int) {
 		defer wg.Done()
@@ -91,7 +91,7 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 	}(index)
 }
 
-func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan chan *GithubEvent, done chan bool) {
+func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan chan *common.GithubEvent, done chan bool) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -120,7 +120,7 @@ func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan c
 func (ad *ArchiveDownloader) DownloadEvents() error {
 	start := time.Now()
 
-	var archFiles []*ArchiveFile
+	var archFiles []*common.ArchiveFile
 	err := ad.engine.Find(&archFiles)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	log.Printf("found %v arch files", len(archFiles))
 
 	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
-	var downloadUrls = make(chan *ArchiveFile)
+	var downloadUrls = make(chan *common.ArchiveFile)
 	var done = make(chan bool)
 	wg := sync.WaitGroup{}
 
@@ -176,7 +176,7 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 		defer wg.Done()
 
 		for line := range lines {
-			ge := GithubEventJSON{}
+			ge := common.GithubEventJSON{}
 			err := json.Unmarshal([]byte(line), &ge)
 			if err != nil {
 				log.Printf("failed to parse json. err %+v\n", err)
@@ -194,12 +194,12 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 	}()
 }
 
-func (ad *ArchiveDownloader) buildDownloadURL(file *ArchiveFile) string {
+func (ad *ArchiveDownloader) buildDownloadURL(file *common.ArchiveFile) string {
 	ft := time.Unix(file.ID, 0).UTC()
 	return fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
 }
 
-func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
+func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 	url := ad.buildDownloadURL(file)
 	res, err := http.Get(url)
 	if err != nil {
@@ -264,7 +264,7 @@ func (ad *ArchiveDownloader) download(file *ArchiveFile) error {
 	return zr.Close()
 }
 
-func (ad *ArchiveDownloader) insertIntoDatabase(event *GithubEvent) error {
+func (ad *ArchiveDownloader) insertIntoDatabase(event *common.GithubEvent) error {
 	//remove the event first to make development easier.
 	_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
 	if err != nil {

@@ -53,19 +53,5 @@ func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) 
 
 	mig.AddMigration("create github event table", migrator.NewAddTableMigration(githubEvent))
 
-	aggregationStats := migrator.Table{
-		Name: "aggregated_stats",
-		Columns: []*migrator.Column{
-			{Name: "id", Type: migrator.DB_BigInt},
-			{Name: "issue_count", Type: migrator.DB_BigInt},
-			{Name: "issue_comment_count", Type: migrator.DB_BigInt},
-			{Name: "pr_count", Type: migrator.DB_BigInt},
-			{Name: "watcher_count", Type: migrator.DB_BigInt},
-			{Name: "pull_request_comment_count", Type: migrator.DB_BigInt},
-		},
-	}
-
-	mig.AddMigration("create aggregation stats table", migrator.NewAddTableMigration(aggregationStats))
-
 	return x, mig.Start()
 }
