@@ -86,7 +86,7 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 			case u := <-downloadUrls:
 				err := ad.download(u)
 				if err != nil {
-					log.Printf("failed to download file. error: %+v\n", err)
+					log.Printf("failed to download file. createdAt: %v error: %+v\n", u.CreatedAt, err)
 				}
 			}
 		}
@@ -171,7 +171,7 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	return nil
 }
 
-func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, lines chan string) {
+func (ad *ArchiveDownloader) spawnLineProcessor(file *common.ArchiveFile, wg *sync.WaitGroup, lines chan string) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -180,7 +180,7 @@ func (ad *ArchiveDownloader) spawnLineProcessor(index int, wg *sync.WaitGroup, l
 			ge := common.GithubEventJSON{}
 			err := json.Unmarshal([]byte(line), &ge)
 			if err != nil {
-				log.Printf("failed to parse json. err %+v\n", err)
+				log.Printf("failed to parse json. createdAt: %v err %+v\n", file.CreatedAt, err)
 				return
 			}
 
@@ -222,7 +222,7 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 
 	//spawn go routines that will marshal strings to json
 	for i := 0; i <= maxGoProcess; i++ {
-		ad.spawnLineProcessor(i, &wg, lines)
+		ad.spawnLineProcessor(file, &wg, lines)
 	}
 
 	// decompress response body and send to workers.
@@ -239,7 +239,7 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 
 		err := scanner.Err()
 		if err != nil {
-			log.Println("reading standard input:", err)
+			log.Printf("failed to read from scanner. createdAt: %v error:%v\n", file.CreatedAt, err)
 			break
 		}
 
