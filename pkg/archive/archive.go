@@ -103,7 +103,6 @@ func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan c
 			case event := <-eventChan:
 				_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
 				if err != nil {
-					//return err
 					log.Fatalf("failed to delete github event. error: %+v", err)
 				}
 
@@ -111,7 +110,6 @@ func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan c
 				if err != nil {
 					log.Fatalf("failed to insert into database. error: %+v", err)
 				}
-				//return err
 			}
 		}
 	}()

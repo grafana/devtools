@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grafana/github-repo-metrics/pkg/common"
 	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +13,7 @@ import (
 var startDate = time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 
 func TestGenerateUrlsFor6Hours(t *testing.T) {
-	var archivedFiles []*ArchiveFile
+	var archivedFiles []*common.ArchiveFile
 	ad := &ArchiveDownloader{}
 
 	testCases := []struct {
@@ -31,13 +32,13 @@ func TestGenerateUrlsFor6Hours(t *testing.T) {
 }
 
 func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
-	var archivedFiles []*ArchiveFile
+	var archivedFiles []*common.ArchiveFile
 	ad := &ArchiveDownloader{
 		doneChan: make(chan time.Time),
 	}
 
 	for i := 0; i < 12; i++ {
-		archivedFiles = append(archivedFiles, NewArchiveFile(2018, 1, 1, i))
+		archivedFiles = append(archivedFiles, common.NewArchiveFile(2018, 1, 1, i))
 	}
 
 	extraHours := 23
@@ -57,7 +58,7 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 }
 
 func TestWritingArchiveFile(t *testing.T) {
-	file := NewArchiveFile(2018, 1, 1, 1)
+	file := common.NewArchiveFile(2018, 1, 1, 1)
 
 	engine, err := InitDatabase("sqlite3", "./test.db")
 	if err != nil {
@@ -70,14 +71,14 @@ func TestWritingArchiveFile(t *testing.T) {
 func TestWritingToDatabase(t *testing.T) {
 	ad := &ArchiveDownloader{}
 
-	var eventsToWrite []*GithubEvent
+	var eventsToWrite []*common.GithubEvent
 
 	json, err := simplejson.NewJson([]byte(`{"field": "value"}`))
 	if err != nil {
 		t.Fatalf("failed to parse json. error: %v", err)
 	}
 	for i := 1; i < 50; i++ {
-		eventsToWrite = append(eventsToWrite, &GithubEvent{
+		eventsToWrite = append(eventsToWrite, &common.GithubEvent{
 			Payload:   json,
 			RepoID:    1,
 			CreatedAt: time.Now(),
@@ -105,7 +106,7 @@ func fakeStopDate(days, hours int) time.Time {
 }
 
 func TestArchiveFileIdFormat(t *testing.T) {
-	af := NewArchiveFile(2015, 10, 10, 10)
+	af := common.NewArchiveFile(2015, 10, 10, 10)
 
 	dt := time.Date(2015, time.Month(10), 10, 10, 0, 0, 0, time.UTC)
 
