@@ -95,14 +95,15 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 }
 
 func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan chan *common.GithubEvent, done chan bool) {
-	wg.Add(1)
+	//wg.Add(1)
 	go func() {
-		defer wg.Done()
+		//defer wg.Done()
 
 		for {
 			select {
-			case <-done:
-				return
+			// case <-done:
+			// 	log.Println("closing spawnDatabaseWriter")
+			// 	return
 			case event := <-eventChan:
 				err := ad.insertIntoDatabase(event)
 				if err != nil {
@@ -148,6 +149,7 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 				return
 			default:
 				if i == len(urls) {
+					log.Println("time to close!")
 					close(done)
 					return
 				}
@@ -198,29 +200,36 @@ func (ad *ArchiveDownloader) buildDownloadURL(file *common.ArchiveFile) string {
 }
 
 func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
+	log.Printf("downloading file for : %v\n", file.CreatedAt)
 	url := ad.buildDownloadURL(file)
 	res, err := http.Get(url)
 	if err != nil {
 		return errors.Wrap(err, "failed to download json file")
 	}
 
-	buf := &bytes.Buffer{}
-	buf.ReadFrom(res.Body)
-	defer res.Body.Close()
+	//log.Println("http status", res.Status)
+	if res.StatusCode != 200 {
+		log.Printf("bad http status code for file: %v status: %v\n", file.CreatedAt, res.StatusCode)
+		return nil
+	}
 
-	zr, err := gzip.NewReader(buf)
+	//create reader that can reader gziped contetn
+	zipReader, err := gzip.NewReader(res.Body)
 	if err != nil {
 		return errors.Wrap(err, "parsing compress content")
 	}
-	zr.Multistream(false)
-	bites, err := ioutil.ReadAll(zr)
+
+	//zipReader.Multistream(false)
+	//read all zipped data into memory.
+	byteArray, err := ioutil.ReadAll(zipReader)
 	if err != nil {
 		return err
 	}
 
-	res.Body.Close()
+	defer zipReader.Close()
+	defer res.Body.Close()
 
-	rrr := bytes.NewReader(bites)
+	inMemReader := bytes.NewReader(byteArray)
 
 	lines := make(chan string)
 	wg := sync.WaitGroup{}
@@ -231,11 +240,9 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 	}
 
 	// decompress response body and send to workers.
+	bufferReader := bufio.NewReaderSize(inMemReader, 2048*2048)
 	for {
-
-		r := bufio.NewReaderSize(rrr, 2048*2048)
-
-		line, isPrefix, err := r.ReadLine()
+		line, isPrefix, err := bufferReader.ReadLine()
 		var s string
 		for err == nil {
 			if isPrefix {
@@ -248,7 +255,7 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 				lines <- string(line)
 			}
 
-			line, isPrefix, err = r.ReadLine()
+			line, isPrefix, err = bufferReader.ReadLine()
 		}
 
 		if err != io.EOF {
@@ -270,7 +277,8 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		return err
 	}
 
-	return zr.Close()
+	return nil
+	//return zr.Close()
 }
 
 func (ad *ArchiveDownloader) insertIntoDatabase(event *common.GithubEvent) error {

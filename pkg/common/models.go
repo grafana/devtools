@@ -30,8 +30,8 @@ type GithubEvent struct {
 
 // GithubEventJSON is the root json model of an event
 type GithubEventJSON struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
+	ID string `json:"id"`
+	//Type string `json:"type"`
 	//Repo      *RepoJSON        `json:"repo"`
 	//Payload   *simplejson.Json `json:"payload"`
 	//Actor     *simplejson.Json `json:"actor"`
