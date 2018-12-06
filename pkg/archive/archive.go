@@ -94,26 +94,6 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 	}(index)
 }
 
-func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan chan *common.GithubEvent, done chan bool) {
-	//wg.Add(1)
-	go func() {
-		//defer wg.Done()
-
-		for {
-			select {
-			// case <-done:
-			// 	log.Println("closing spawnDatabaseWriter")
-			// 	return
-			case event := <-eventChan:
-				err := ad.insertIntoDatabase(event)
-				if err != nil {
-					log.Fatalf("failed to delete github event. error: %+v", err)
-				}
-			}
-		}
-	}()
-}
-
 // DownloadEvents start to download all archive events
 func (ad *ArchiveDownloader) DownloadEvents() error {
 	start := time.Now()
@@ -135,8 +115,6 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	for i := 0; i < maxGoRoutines; i++ {
 		ad.spawnWorker(i, &wg, downloadUrls, done)
 	}
-
-	ad.spawnDatabaseWriter(&wg, ad.eventChan, done)
 
 	go func() {
 		i := 0
@@ -186,7 +164,7 @@ func (ad *ArchiveDownloader) spawnLineProcessor(file *common.ArchiveFile, wg *sy
 				if ge.Org != nil && ge.Org.Login == v {
 					id, _ := strconv.ParseInt(ge.ID, 10, 0)
 					fullJSON, _ := simplejson.NewJson([]byte(line))
-					ad.eventChan <- &common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: fullJSON}
+					ad.insertIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: fullJSON})
 					eventCount++
 				}
 			}
@@ -207,7 +185,6 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		return errors.Wrap(err, "failed to download json file")
 	}
 
-	//log.Println("http status", res.Status)
 	if res.StatusCode != 200 {
 		log.Printf("bad http status code for file: %v status: %v\n", file.CreatedAt, res.StatusCode)
 		return nil
@@ -278,7 +255,6 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 	}
 
 	return nil
-	//return zr.Close()
 }
 
 func (ad *ArchiveDownloader) insertIntoDatabase(event *common.GithubEvent) error {
