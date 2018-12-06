@@ -30,29 +30,12 @@ type GithubEvent struct {
 
 // GithubEventJSON is the root json model of an event
 type GithubEventJSON struct {
-	ID string `json:"id"`
-	//Type string `json:"type"`
-	//Repo      *RepoJSON        `json:"repo"`
-	//Payload   *simplejson.Json `json:"payload"`
-	//Actor     *simplejson.Json `json:"actor"`
+	ID        string    `json:"id"`
 	Org       *OrgJSON  `json:"org"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// RepoJSON is the json model of an repository
-// type RepoJSON struct {
-// 	ID   int64  `json:"id"`
-// 	Name string `json:"name"`
-// }
-
+// OrgJSON is the json model from archive events
 type OrgJSON struct {
 	Login string `json:"login"`
 }
-
-// ActorJSON is the json model of an actor
-// type ActorJSON struct {
-// 	ID           int64  `json:"id"`
-// 	Login        string `json:"login"`
-// 	DisplayLogin string `json:"display_login"`
-// 	GravatarID   string `json:"gravatar_id"`
-// }
