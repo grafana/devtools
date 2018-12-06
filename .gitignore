@@ -24,4 +24,5 @@ cmd/archive/archive
 cmd/aggregate/aggregate
 cmd/streams/streams
 cmd/bots/bots
+devenv/prod-archive.yaml
 .uptodate

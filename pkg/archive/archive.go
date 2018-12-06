@@ -233,15 +233,10 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 	// decompress response body and send to workers.
 	for {
 
-		//zr.Multistream(false)
-
-		//scanner := bufio.NewScanner(zr)
-
 		r := bufio.NewReaderSize(rrr, 2048*2048)
 
 		line, isPrefix, err := r.ReadLine()
 		var s string
-		//for err == nil && !isPrefix {
 		for err == nil {
 			if isPrefix {
 				s += string(line)
@@ -256,11 +251,6 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 			line, isPrefix, err = r.ReadLine()
 		}
 
-		// if isPrefix {
-		// 	log.Printf("buffer size to small. createdAt: %v\n", file.CreatedAt)
-		// 	break
-		// }
-
 		if err != io.EOF {
 			log.Printf("failed to read line. createdAt: %v error:%v\n", file.CreatedAt, err)
 			break
@@ -269,29 +259,6 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		if err == io.EOF {
 			break
 		}
-
-		// buff := make([]byte, 2048*2048)
-		// scanner.Buffer(buff, 2048*2048) //increase buffer limit
-
-		// for scanner.Scan() {
-		// 	lines <- scanner.Text()
-		// }
-
-		// err := scanner.Err()
-		// if err != nil {
-		// 	log.Printf("failed to read from scanner. createdAt: %v error:%v\n", file.CreatedAt, err)
-		// 	break
-		// }
-
-		// if scanner.Err() == io.EOF {
-		// 	log.Println("scanner EOF")
-		// 	break
-		// }
-
-		// err = zr.Reset(buf)
-		// if err == io.EOF {
-		// 	break
-		// }
 	}
 
 	close(lines)
