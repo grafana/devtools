@@ -2,8 +2,6 @@ package common
 
 import (
 	"time"
-
-	"github.com/grafana/grafana/pkg/components/simplejson"
 )
 
 // ArchiveFile is the database model for storing reference to an archive file
@@ -24,7 +22,7 @@ func NewArchiveFile(year, month, day, hour int) *ArchiveFile {
 // GithubEvent is the database model of an event
 type GithubEvent struct {
 	ID        int64
-	Data      *simplejson.Json
+	Data      string
 	CreatedAt time.Time
 }
 

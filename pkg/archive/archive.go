@@ -11,13 +11,13 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	"github.com/grafana/github-repo-metrics/pkg/common"
-	"github.com/grafana/grafana/pkg/components/simplejson"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"
@@ -27,6 +27,7 @@ const maxGoRoutines = 6
 const maxGoProcess = 8
 
 var eventCount int64
+var filesWithErrors = []string{}
 
 func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, st, stopDate time.Time) []*common.ArchiveFile {
 	var result []*common.ArchiveFile
@@ -40,7 +41,7 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, 
 	for st.Unix() < stopDate.Unix() {
 		archivedFile := common.NewArchiveFile(st.Year(), int(st.Month()), st.Day(), st.Hour())
 		_, exist := index[archivedFile.ID]
-		if !exist {
+		if !exist || ad.overrideAllFiles {
 			result = append(result, archivedFile)
 		}
 
@@ -50,17 +51,20 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, 
 	return result
 }
 
+// ArchiveDownloader downloads, decompress and store events for github orgs
 type ArchiveDownloader struct {
-	engine    *xorm.Engine
-	url       string
-	orgNames  []string
-	startDate time.Time
-	stopDate  time.Time
-	doneChan  chan time.Time
-	eventChan chan *common.GithubEvent
+	engine           *xorm.Engine
+	url              string
+	orgNames         []string
+	startDate        time.Time
+	stopDate         time.Time
+	doneChan         chan time.Time
+	eventChan        chan *common.GithubEvent
+	overrideAllFiles bool
 }
 
-func NewArchiveDownloader(engine *xorm.Engine, url string, orgNames []string, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
+// NewArchiveDownloader creates a new downloader
+func NewArchiveDownloader(engine *xorm.Engine, overrideAllFiles bool, url string, orgNames []string, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
 	return &ArchiveDownloader{
 		engine:    engine,
 		url:       url,
@@ -87,6 +91,7 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 			case u := <-downloadUrls:
 				err := ad.download(u)
 				if err != nil {
+					filesWithErrors = append(filesWithErrors, fmt.Sprintf("%v", u.CreatedAt))
 					log.Printf("failed to download file. createdAt: %v error: %+v\n", u.CreatedAt, err)
 				}
 			}
@@ -127,7 +132,6 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 				return
 			default:
 				if i == len(urls) {
-					log.Println("time to close!")
 					close(done)
 					return
 				}
@@ -142,8 +146,8 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	// wait for all workers to complete
 	wg.Wait()
 
-	log.Printf("filtered event: %d - elapsed: %v\n", eventCount, time.Since(start))
-
+	log.Printf("filtered event: %d - failed: %v - elapsed: %v\n", eventCount, len(filesWithErrors), time.Since(start))
+	log.Printf("dates with failed downloads: %v", strings.Join(filesWithErrors, ","))
 	return nil
 }
 
@@ -163,8 +167,7 @@ func (ad *ArchiveDownloader) spawnLineProcessor(file *common.ArchiveFile, wg *sy
 			for _, v := range ad.orgNames {
 				if ge.Org != nil && ge.Org.Login == v {
 					id, _ := strconv.ParseInt(ge.ID, 10, 0)
-					fullJSON, _ := simplejson.NewJson([]byte(line))
-					ad.insertIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: fullJSON})
+					ad.insertIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: line})
 					eventCount++
 				}
 			}
@@ -196,7 +199,6 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		return errors.Wrap(err, "parsing compress content")
 	}
 
-	//zipReader.Multistream(false)
 	//read all zipped data into memory.
 	byteArray, err := ioutil.ReadAll(zipReader)
 	if err != nil {

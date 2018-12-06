@@ -24,6 +24,7 @@ func main() {
 		orgNamesFlag     string
 		orgNames         []string
 		maxDuration      time.Duration
+		overrideAllFiles bool
 	)
 
 	flag.StringVar(&database, "database", "", "database type")
@@ -33,6 +34,7 @@ func main() {
 	flag.StringVar(&stopDateFlag, "stopDateFlag", "", "")
 	flag.StringVar(&orgNamesFlag, "orgNames", "grafana", "comma sepearted list of orgs to download all events for")
 	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "")
+	flag.BoolVar(&overrideAllFiles, "overrideAllFiles", false, "overrides all files instead of just those missing")
 	flag.Parse()
 
 	startDate, err := time.Parse(simpleDateFormat, startDateFlag)
@@ -57,7 +59,7 @@ func main() {
 	}
 
 	doneChan := make(chan time.Time)
-	ad := archive.NewArchiveDownloader(engine, archiveUrl, orgNames, startDate, stopDate, doneChan)
+	ad := archive.NewArchiveDownloader(engine, overrideAllFiles, archiveUrl, orgNames, startDate, stopDate, doneChan)
 	go func() {
 		<-time.After(maxDuration)
 		close(doneChan)

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/grafana/github-repo-metrics/pkg/common"
-	"github.com/grafana/grafana/pkg/components/simplejson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,13 +72,9 @@ func TestWritingToDatabase(t *testing.T) {
 
 	var eventsToWrite []*common.GithubEvent
 
-	json, err := simplejson.NewJson([]byte(`{"field": "value"}`))
-	if err != nil {
-		t.Fatalf("failed to parse json. error: %v", err)
-	}
 	for i := 1; i < 50; i++ {
 		eventsToWrite = append(eventsToWrite, &common.GithubEvent{
-			Data:      json,
+			Data:      `{"field": "value"}`,
 			CreatedAt: time.Now(),
 			ID:        int64(i),
 		})
