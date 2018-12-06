@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -22,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const maxGoRoutines = 4
-const maxGoProcess = 6
+const maxGoRoutines = 6
+const maxGoProcess = 8
 
 var eventCount int64
 
@@ -103,14 +104,9 @@ func (ad *ArchiveDownloader) spawnDatabaseWriter(wg *sync.WaitGroup, eventChan c
 			case <-done:
 				return
 			case event := <-eventChan:
-				_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
+				err := ad.insertIntoDatabase(event)
 				if err != nil {
 					log.Fatalf("failed to delete github event. error: %+v", err)
-				}
-
-				_, err = ad.engine.Insert(event)
-				if err != nil {
-					log.Fatalf("failed to insert into database. error: %+v", err)
 				}
 			}
 		}
@@ -216,6 +212,15 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 	if err != nil {
 		return errors.Wrap(err, "parsing compress content")
 	}
+	zr.Multistream(false)
+	bites, err := ioutil.ReadAll(zr)
+	if err != nil {
+		return err
+	}
+
+	res.Body.Close()
+
+	rrr := bytes.NewReader(bites)
 
 	lines := make(chan string)
 	wg := sync.WaitGroup{}
@@ -227,31 +232,66 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 
 	// decompress response body and send to workers.
 	for {
-		zr.Multistream(false)
 
-		scanner := bufio.NewScanner(zr)
-		buff := make([]byte, 2048*2048)
-		scanner.Buffer(buff, 2048*2048) //increase buffer limit
+		//zr.Multistream(false)
 
-		for scanner.Scan() {
-			lines <- scanner.Text()
+		//scanner := bufio.NewScanner(zr)
+
+		r := bufio.NewReaderSize(rrr, 2048*2048)
+
+		line, isPrefix, err := r.ReadLine()
+		var s string
+		//for err == nil && !isPrefix {
+		for err == nil {
+			if isPrefix {
+				s += string(line)
+			} else {
+				s = string(line)
+			}
+
+			if !isPrefix {
+				lines <- string(line)
+			}
+
+			line, isPrefix, err = r.ReadLine()
 		}
 
-		err := scanner.Err()
-		if err != nil {
-			log.Printf("failed to read from scanner. createdAt: %v error:%v\n", file.CreatedAt, err)
+		// if isPrefix {
+		// 	log.Printf("buffer size to small. createdAt: %v\n", file.CreatedAt)
+		// 	break
+		// }
+
+		if err != io.EOF {
+			log.Printf("failed to read line. createdAt: %v error:%v\n", file.CreatedAt, err)
 			break
 		}
 
-		if scanner.Err() == io.EOF {
-			log.Println("scanner EOF")
-			break
-		}
-
-		err = zr.Reset(buf)
 		if err == io.EOF {
 			break
 		}
+
+		// buff := make([]byte, 2048*2048)
+		// scanner.Buffer(buff, 2048*2048) //increase buffer limit
+
+		// for scanner.Scan() {
+		// 	lines <- scanner.Text()
+		// }
+
+		// err := scanner.Err()
+		// if err != nil {
+		// 	log.Printf("failed to read from scanner. createdAt: %v error:%v\n", file.CreatedAt, err)
+		// 	break
+		// }
+
+		// if scanner.Err() == io.EOF {
+		// 	log.Println("scanner EOF")
+		// 	break
+		// }
+
+		// err = zr.Reset(buf)
+		// if err == io.EOF {
+		// 	break
+		// }
 	}
 
 	close(lines)
