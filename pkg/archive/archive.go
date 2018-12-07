@@ -15,16 +15,13 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	"github.com/grafana/github-repo-metrics/pkg/common"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/pkg/errors"
 )
 
-const maxGoRoutines = 6
-const maxGoProcess = 8
+const maxGoRoutines = 8
 
 var eventCount int64
 var filesWithErrors = []string{}
@@ -41,7 +38,7 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, 
 	for st.Unix() < stopDate.Unix() {
 		archivedFile := common.NewArchiveFile(st.Year(), int(st.Month()), st.Day(), st.Hour())
 		_, exist := index[archivedFile.ID]
-		if !exist || ad.overrideAllFiles {
+		if !exist {
 			result = append(result, archivedFile)
 		}
 
@@ -66,13 +63,14 @@ type ArchiveDownloader struct {
 // NewArchiveDownloader creates a new downloader
 func NewArchiveDownloader(engine *xorm.Engine, overrideAllFiles bool, url string, orgNames []string, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
 	return &ArchiveDownloader{
-		engine:    engine,
-		url:       url,
-		orgNames:  orgNames,
-		startDate: startDate,
-		stopDate:  stopDate,
-		doneChan:  doneChan,
-		eventChan: make(chan *common.GithubEvent, 10),
+		engine:           engine,
+		url:              url,
+		orgNames:         orgNames,
+		startDate:        startDate,
+		stopDate:         stopDate,
+		doneChan:         doneChan,
+		eventChan:        make(chan *common.GithubEvent, 10),
+		overrideAllFiles: overrideAllFiles,
 	}
 }
 
@@ -104,9 +102,11 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	start := time.Now()
 
 	var archFiles []*common.ArchiveFile
-	err := ad.engine.Find(&archFiles)
-	if err != nil {
-		return err
+	if !ad.overrideAllFiles {
+		err := ad.engine.Find(&archFiles)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Printf("found %v arch files", len(archFiles))
@@ -151,30 +151,6 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	return nil
 }
 
-func (ad *ArchiveDownloader) spawnLineProcessor(file *common.ArchiveFile, wg *sync.WaitGroup, lines chan string) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		for line := range lines {
-			ge := common.GithubEventJSON{}
-			err := json.Unmarshal([]byte(line), &ge)
-			if err != nil {
-				log.Printf("failed to parse json. createdAt: %v err %+v\n", file.CreatedAt, err)
-				return
-			}
-
-			for _, v := range ad.orgNames {
-				if ge.Org != nil && ge.Org.Login == v {
-					id, _ := strconv.ParseInt(ge.ID, 10, 0)
-					ad.insertIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: line})
-					eventCount++
-				}
-			}
-		}
-	}()
-}
-
 func (ad *ArchiveDownloader) buildDownloadURL(file *common.ArchiveFile) string {
 	ft := time.Unix(file.ID, 0).UTC()
 	return fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
@@ -182,12 +158,14 @@ func (ad *ArchiveDownloader) buildDownloadURL(file *common.ArchiveFile) string {
 
 func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 	log.Printf("downloading file for : %v\n", file.CreatedAt)
+
 	url := ad.buildDownloadURL(file)
 	res, err := http.Get(url)
 	if err != nil {
 		return errors.Wrap(err, "failed to download json file")
 	}
 
+	// bail out if the request didn't return 200. we will download this file next time
 	if res.StatusCode != 200 {
 		log.Printf("bad http status code for file: %v status: %v\n", file.CreatedAt, res.StatusCode)
 		return nil
@@ -210,19 +188,14 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 
 	inMemReader := bytes.NewReader(byteArray)
 
-	lines := make(chan string)
-	wg := sync.WaitGroup{}
-
-	//spawn go routines that will marshal strings to json
-	for i := 0; i <= maxGoProcess; i++ {
-		ad.spawnLineProcessor(file, &wg, lines)
-	}
-
 	// decompress response body and send to workers.
 	bufferReader := bufio.NewReaderSize(inMemReader, 2048*2048)
+
+	var lastError error
+	var s string
 	for {
 		line, isPrefix, err := bufferReader.ReadLine()
-		var s string
+		s = ""
 		for err == nil {
 			if isPrefix {
 				s += string(line)
@@ -231,7 +204,10 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 			}
 
 			if !isPrefix {
-				lines <- string(line)
+				err := ad.parseAndFilterEvent(file, s)
+				if err != nil {
+					lastError = err
+				}
 			}
 
 			line, isPrefix, err = bufferReader.ReadLine()
@@ -247,19 +223,48 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		}
 	}
 
-	close(lines)
+	//only mark the file as downloaded if all lines are parsed.
+	if lastError == nil {
+		err = ad.saveFileIntoDatabase(file)
+		if err != nil {
+			return err
+		}
+	}
 
-	wg.Wait()
+	return lastError
+}
 
-	_, err = ad.engine.Insert(file)
+func (ad *ArchiveDownloader) parseAndFilterEvent(file *common.ArchiveFile, line string) error {
+	ge := common.GithubEventJSON{}
+	err := json.Unmarshal([]byte(line), &ge)
 	if err != nil {
+		log.Printf("failed to parse json. createdAt: %v err %+v\n", file.CreatedAt, err)
 		return err
+	}
+
+	for _, v := range ad.orgNames {
+		if ge.Org != nil && ge.Org.Login == v {
+			id, _ := strconv.ParseInt(ge.ID, 10, 0)
+			ad.saveEventIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: string(line)})
+			eventCount++
+		}
 	}
 
 	return nil
 }
 
-func (ad *ArchiveDownloader) insertIntoDatabase(event *common.GithubEvent) error {
+func (ad *ArchiveDownloader) saveFileIntoDatabase(file *common.ArchiveFile) error {
+	//remove the file first to make development easier.
+	_, err := ad.engine.Exec("DELETE FROM archive_file WHERE ID = ? ", file.ID)
+	if err != nil {
+		return err
+	}
+
+	_, err = ad.engine.Insert(file)
+	return err
+}
+
+func (ad *ArchiveDownloader) saveEventIntoDatabase(event *common.GithubEvent) error {
 	//remove the event first to make development easier.
 	_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
 	if err != nil {

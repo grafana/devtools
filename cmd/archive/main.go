@@ -6,8 +6,11 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/grafana/github-repo-metrics/pkg/archive"
 	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (

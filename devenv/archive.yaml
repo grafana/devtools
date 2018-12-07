@@ -6,5 +6,6 @@ services:
     command:
       - '-database=postgres'
       - '-connstring=postgresql://grafana:password@localhost:5432/grafana?sslmode=disable'
-      - '-maxDuration=10m'
+      - '-maxDuration=10h'
       - '-orgNames=grafana' 
+      - '-overrideAllFiles=true'
