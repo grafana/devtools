@@ -81,16 +81,12 @@ type engine struct {
 	combinedStreams   []*combinedStream
 }
 
-func NewWithContext(ctx context.Context) Engine {
+func New() Engine {
 	return &engine{
 		streamSubscribers: make(map[string][]SubscribeFunc, 0),
 		streams:           make(map[string]*stream),
 		combinedStreams:   []*combinedStream{},
 	}
-}
-
-func New() Engine {
-	return NewWithContext(context.Background())
 }
 
 func (e *engine) Subscribe(topics []string, fn SubscribeFunc) {

@@ -39,9 +39,7 @@ func main() {
 	githubstats.RegisterProjections(projectionEngine)
 
 	events, errors := readEvents("output")
-	// eventStreams := createEventStreams()
 	go printErrorSummary(errors)
-	//<-parallel([]transformFunc{countEventTypes, countEventTypes}, events)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -98,9 +96,6 @@ func readEvents(dir string) (streams.Readable, <-chan error) {
 		sort.Float64s(sortedTimestamps)
 
 		for _, ts := range sortedTimestamps {
-			// if ts > float64(time.Date(2015, 3, 31, 0, 0, 0, 0, time.UTC).Unix()) {
-			// 	break
-			// }
 			fp := fileTimestampMap[ts]
 			file, err := os.Open(fp)
 			if err != nil {
