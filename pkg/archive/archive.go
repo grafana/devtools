@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,11 +18,8 @@ import (
 
 	"github.com/go-xorm/xorm"
 	"github.com/grafana/github-repo-metrics/pkg/common"
-
 	"github.com/pkg/errors"
 )
-
-const maxGoRoutines = 8
 
 var eventCount int64
 var filesWithErrors = []string{}
@@ -117,7 +115,7 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	wg := sync.WaitGroup{}
 
 	// start workers
-	for i := 0; i < maxGoRoutines; i++ {
+	for i := 0; i < runtime.NumCPU(); i++ {
 		ad.spawnWorker(i, &wg, downloadUrls, done)
 	}
 
