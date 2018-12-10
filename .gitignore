@@ -21,8 +21,7 @@ test2.db
 log.log
 
 cmd/github-archive-parser/github-archive-parser
-cmd/aggregate/aggregate
-cmd/streams/streams
+cmd/github-event-aggregator/github-event-aggregator
 cmd/bots/bots
 devenv/prod-archive.yaml
 .uptodate

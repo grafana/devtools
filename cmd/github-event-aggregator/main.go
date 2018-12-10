@@ -1,24 +1,19 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
-	"os"
-	"path"
-	"path/filepath"
-	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/grafana/devtools/pkg/githubstats"
 	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/githubstats"
 	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
 	"github.com/grafana/devtools/pkg/streams/pkg/streams"
 	"github.com/lib/pq"
@@ -26,19 +21,41 @@ import (
 )
 
 func main() {
-	connStr := "user=test password=test host=localhost port=5432 dbname=github_stats sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	var (
+		database             string
+		fromConnectionString string
+		toConnectionString   string
+	)
+	flag.StringVar(&database, "database", "", "database type")
+	flag.StringVar(&fromConnectionString, "fromConnectionstring", "", "")
+	flag.StringVar(&toConnectionString, "toConnectionstring", "", "")
+	flag.Parse()
+
+	fromDb, err := sql.Open(database, fromConnectionString)
 	if err != nil {
-		fmt.Println(err)
-		log.Fatal(err)
+		log.Fatalln("Failed to connect to archive database", err)
 	}
-	defer db.Close()
+	defer fromDb.Close()
+
+	if err = fromDb.Ping(); err != nil {
+		log.Fatalln("Error: Could not establish a connection with the archive database", err)
+	}
+
+	toDb, err := sql.Open(database, toConnectionString)
+	if err != nil {
+		log.Fatalln("Failed to connect to event aggregator database", err)
+	}
+	defer toDb.Close()
+
+	if err = toDb.Ping(); err != nil {
+		log.Fatalln("Error: Could not establish a connection with the event aggregator database", err)
+	}
 
 	s := streams.New()
-	projectionEngine := streamprojections.New(s, NewPostgresStreamPersister(db))
+	projectionEngine := streamprojections.New(s, NewPostgresStreamPersister(toDb))
 	githubstats.RegisterProjections(projectionEngine)
 
-	events, errors := readEvents("output")
+	events, errors := readEventsFromDb(fromDb)
 	go printErrorSummary(errors)
 
 	var wg sync.WaitGroup
@@ -53,101 +70,93 @@ func main() {
 	wg.Wait()
 }
 
-var parseFileDate = regexp.MustCompile(`^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})-(?P<hour>\d{1,2}).json$`)
-
-func readEvents(dir string) (streams.Readable, <-chan error) {
-	out := make(chan streams.T)
+func readEventsFromDb(db *sql.DB) (streams.Readable, <-chan error) {
+	r, w := streams.NewReadableWritable()
 	outErr := make(chan error)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	go func(dir string) {
-		files, err := filepath.Glob(path.Join(dir, "*.json"))
-		if err != nil {
+	go func(db *sql.DB) {
+		totalRows := int64(0)
+		offset := int64(0)
+
+		row := db.QueryRow("SELECT COUNT(id) FROM github_event")
+		if err := row.Scan(&totalRows); err != nil {
 			outErr <- err
 			return
 		}
 
-		fileTimestampMap := map[float64]string{}
+		totalPages := totalRows / 1000
+		readEvents := int64(0)
 
-		for _, fp := range files {
-			_, f := path.Split(fp)
-			n1 := parseFileDate.SubexpNames()
-			r2 := parseFileDate.FindAllStringSubmatch(f, -1)[0]
-			md := map[string]string{}
-			for i, n := range r2 {
-				md[n1[i]] = n
+		log.Println("Reading events...", "total rows", totalRows, "total pages", totalPages)
+
+		for n := int64(0); n <= totalPages; n++ {
+			if n > 0 {
+				offset = n * 1000
 			}
-
-			t, err := time.Parse("2006-01-02T15", fmt.Sprintf("%s-%s-%sT%02s", md["year"], md["month"], md["day"], md["hour"]))
+			rows, err := db.Query("SELECT id, created_at, data FROM github_event ORDER BY id ASC LIMIT 1000 OFFSET $1", offset)
 			if err != nil {
 				outErr <- err
-				continue
+				return
 			}
 
-			fileTimestampMap[float64(t.Unix())] = fp
-		}
+			defer rows.Close()
 
-		sortedTimestamps := []float64{}
-		for k := range fileTimestampMap {
-			sortedTimestamps = append(sortedTimestamps, k)
-		}
-		sort.Float64s(sortedTimestamps)
-
-		for _, ts := range sortedTimestamps {
-			fp := fileTimestampMap[ts]
-			file, err := os.Open(fp)
-			if err != nil {
-				outErr <- err
+			if !rows.NextResultSet() {
+				break
 			}
 
-			bufferedEventMap := map[string]*ghevents.Event{}
-
-			reader := bufio.NewReader(file)
-			d := json.NewDecoder(reader)
-			for {
-				var evt ghevents.Event
-				err := d.Decode(&evt)
-				if err == io.EOF {
-					file.Close()
-					break
-				} else if err != nil {
-					file.Close()
+			for rows.Next() {
+				var (
+					id        int64
+					createdAt time.Time
+					data      string
+				)
+				if err := rows.Scan(&id, &createdAt, &data); err != nil {
 					outErr <- err
-					break
+					continue
 				}
 
-				bufferedEventMap[evt.ID] = &evt
-			}
-			file.Close()
+				reader := strings.NewReader(data)
+				d := json.NewDecoder(reader)
+				for {
+					var evt ghevents.Event
+					err := d.Decode(&evt)
+					if err == io.EOF {
+						break
+					} else if err != nil {
+						outErr <- err
+						break
+					}
 
-			sortedEvents := []string{}
-			for k := range bufferedEventMap {
-				sortedEvents = append(sortedEvents, k)
+					w <- &evt
+					readEvents++
+				}
 			}
-			sort.Strings(sortedEvents)
 
-			for _, id := range sortedEvents {
-				out <- bufferedEventMap[id]
+			if err := rows.Err(); err != nil {
+				outErr <- err
 			}
 		}
 
+		log.Println("Reading events DONE", "read events", readEvents)
 		wg.Done()
-	}(dir)
+	}(db)
 
 	go func() {
 		wg.Wait()
-		close(out)
+		close(w)
 		close(outErr)
 	}()
 
-	return out, outErr
+	return r, outErr
 }
 
 func printErrorSummary(errors <-chan error) {
 	for err := range errors {
-		fmt.Println("Receive error", "err", err)
+		log.Println("Receive error", "err", err)
 	}
 }
 
@@ -167,16 +176,16 @@ func (sp *postgresStreamPersister) Register(name string, objTemplate interface{}
 	sp.StreamPersisterBase.Register(name, objTemplate)
 	tx, err := sp.db.Begin()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	_, err = tx.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS %s`, pq.QuoteIdentifier(name)))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		err = tx.Rollback()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		return
 	}
@@ -198,17 +207,17 @@ func (sp *postgresStreamPersister) Register(name string, objTemplate interface{}
 	_, err = tx.Exec(createTable.String())
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		err = tx.Rollback()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 }
@@ -217,38 +226,38 @@ func (sp *postgresStreamPersister) Persist(name string, stream streams.Readable)
 	s := sp.StreamsToPersist[name]
 	txn, err := sp.db.Begin()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	stmt, err := txn.Prepare(pq.CopyIn(name, s.GetColumnNames()...))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	for msg := range stream {
 		_, err = stmt.Exec(s.GetColumnValues(msg)...)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			continue
 		}
 	}
 
 	_, err = stmt.Exec()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	err = stmt.Close()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
 	err = txn.Commit()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }

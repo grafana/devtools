@@ -195,14 +195,7 @@ func (p *PullRequestAgeProjections) partitionByRepo(msg interface{}) (string, in
 
 func (p *PullRequestAgeProjections) partitionByProposedBy(msg interface{}) (string, interface{}) {
 	state := msg.(*pullRequestViewState)
-
-	contributorGroup := contributorGroupName
-
-	if group, ok := actorContributorGroupMap[state.openedBy]; ok {
-		contributorGroup = group
-	}
-
-	return "proposedBy", contributorGroup
+	return "proposedBy", mapUserLoginToGroup(state.openedBy)
 }
 
 func (p *PullRequestAgeProjections) init(t time.Time, repo, proposedBy, period string) streamprojections.ProjectionState {
@@ -373,14 +366,7 @@ func (p *PullRequestOpenedToMergedProjections) partitionByRepo(msg interface{}) 
 
 func (p *PullRequestOpenedToMergedProjections) partitionByProposedBy(msg interface{}) (string, interface{}) {
 	state := msg.(*pullRequestViewState)
-
-	contributorGroup := contributorGroupName
-
-	if group, ok := actorContributorGroupMap[state.openedBy]; ok {
-		contributorGroup = group
-	}
-
-	return "proposedBy", contributorGroup
+	return "proposedBy", mapUserLoginToGroup(state.openedBy)
 }
 
 func (p *PullRequestOpenedToMergedProjections) init(t time.Time, repo, proposedBy, period string) streamprojections.ProjectionState {

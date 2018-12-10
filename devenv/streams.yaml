@@ -1,8 +1,0 @@
-version: "2"
-services:
-  streams:
-    image: grafana/github-stats-streams:latest
-    network_mode: host
-    command:
-      - '-database=postgres'
-      - '-connstring=postgresql://grafana:password@localhost:5432/grafana?sslmode=disable'

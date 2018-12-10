@@ -193,14 +193,7 @@ func (p *IssuesAgeProjections) partitionByRepo(msg interface{}) (string, interfa
 
 func (p *IssuesAgeProjections) partitionByProposedBy(msg interface{}) (string, interface{}) {
 	state := msg.(*issuesViewState)
-
-	contributorGroup := contributorGroupName
-
-	if group, ok := actorContributorGroupMap[state.openedBy]; ok {
-		contributorGroup = group
-	}
-
-	return "openedBy", contributorGroup
+	return "openedBy", mapUserLoginToGroup(state.openedBy)
 }
 
 func (p *IssuesAgeProjections) init(t time.Time, repo, openedBy, period string) streamprojections.ProjectionState {

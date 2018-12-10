@@ -111,14 +111,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 
 func (p *IssuesActivityProjections) partitionByIssueAuthor(msg interface{}) (string, interface{}) {
 	evt := msg.(*ghevents.Event)
-
-	contributorGroup := contributorGroupName
-
-	if group, ok := actorContributorGroupMap[evt.Payload.Issue.User.Login]; ok {
-		contributorGroup = group
-	}
-
-	return "openedBy", contributorGroup
+	return "openedBy", mapUserLoginToGroup(evt.Payload.Issue.User.Login)
 }
 
 func (p *IssuesActivityProjections) init(t time.Time, repo, contributorGroup, period string) streamprojections.ProjectionState {

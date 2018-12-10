@@ -112,14 +112,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 
 func (p *PullRequestActivityProjections) partitionByPrAuthor(msg interface{}) (string, interface{}) {
 	evt := msg.(*ghevents.Event)
-
-	contributorGroup := contributorGroupName
-
-	if group, ok := actorContributorGroupMap[evt.Payload.PullRequest.User.Login]; ok {
-		contributorGroup = group
-	}
-
-	return "proposedBy", contributorGroup
+	return "proposedBy", mapUserLoginToGroup(evt.Payload.PullRequest.User.Login)
 }
 
 func (p *PullRequestActivityProjections) init(t time.Time, repo, contributorGroup, period string) streamprojections.ProjectionState {
