@@ -3,11 +3,9 @@
 
 # stolen and from https://github.com/cortexproject/cortex and modified for our needs
 
-VERSION := v2
-
 # Boiler plate for bulding Docker containers.
 # All this must go at top of file I'm afraid.
-IMAGE_PREFIX ?= grafana/github-stats-
+IMAGE_PREFIX ?= grafana/devtools-
 GIT_REVISION := $(shell git rev-parse HEAD)
 UPTODATE := .uptodate
 
@@ -17,7 +15,7 @@ UPTODATE := .uptodate
 # declared.
 %/$(UPTODATE): %/Dockerfile
 	$(SUDO) docker build -t $(IMAGE_PREFIX)$(shell basename $(@D)) $(@D)/
-	$(SUDO) docker tag $(IMAGE_PREFIX)$(shell basename $(@D)) $(IMAGE_PREFIX)$(shell basename $(@D)):$(VERSION)
+	$(SUDO) docker tag $(IMAGE_PREFIX)$(shell basename $(@D)) $(IMAGE_PREFIX)$(shell basename $(@D)):$(GIT_REVISION)
 	touch $@
 
 # We don't want find to scan inside a bunch of directories, to accelerate the
