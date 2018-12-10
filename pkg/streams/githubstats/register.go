@@ -1,7 +1,7 @@
 package githubstats
 
 import (
-	"github.com/grafana/github-repo-metrics/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
 )
 
 func RegisterProjections(projectionEngine streamprojections.StreamProjectionEngine) {

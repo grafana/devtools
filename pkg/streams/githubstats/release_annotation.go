@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	ghevents "github.com/grafana/github-repo-metrics/pkg/streams"
-	"github.com/grafana/github-repo-metrics/pkg/streams/pkg/streamprojections"
+	ghevents "github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
 )
 
 type ReleaseAnnotationState struct {

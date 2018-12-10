@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,15 +17,11 @@ import (
 	"sync"
 	"time"
 
+	ghevents "github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/githubstats"
+	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/streams/pkg/streams"
 	"github.com/lib/pq"
-
-	"database/sql"
-
-	ghevents "github.com/grafana/github-repo-metrics/pkg/streams"
-	"github.com/grafana/github-repo-metrics/pkg/streams/githubstats"
-	"github.com/grafana/github-repo-metrics/pkg/streams/pkg/streamprojections"
-	"github.com/grafana/github-repo-metrics/pkg/streams/pkg/streams"
-
 	_ "github.com/lib/pq"
 )
 

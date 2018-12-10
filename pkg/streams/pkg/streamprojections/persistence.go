@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grafana/github-repo-metrics/pkg/streams/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/pkg/streams"
 )
 
 type StreamPersister interface {

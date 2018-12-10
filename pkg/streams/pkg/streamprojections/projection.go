@@ -3,7 +3,7 @@ package streamprojections
 import (
 	"reflect"
 
-	"github.com/grafana/github-repo-metrics/pkg/streams/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/pkg/streams"
 )
 
 type Projection interface {

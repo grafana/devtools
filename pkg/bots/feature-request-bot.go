@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/daniellee/go-github/github"
-	githubclient "github.com/grafana/github-repo-metrics/pkg/github-client"
+	githubclient "github.com/grafana/devtools/pkg/github-client"
 )
 
 // FeatureRequestBot fetches feature requests that are:

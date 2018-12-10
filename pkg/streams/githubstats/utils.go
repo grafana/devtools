@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	ghevents "github.com/grafana/github-repo-metrics/pkg/streams"
+	ghevents "github.com/grafana/devtools/pkg/streams"
 )
 
 const coreContributorGroupName = "Core Contributor"

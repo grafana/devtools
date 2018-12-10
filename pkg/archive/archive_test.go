@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/grafana/github-repo-metrics/pkg/common"
+	"github.com/grafana/devtools/pkg/common"
 	"github.com/stretchr/testify/assert"
 )
 

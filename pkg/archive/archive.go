@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/go-xorm/xorm"
-	"github.com/grafana/github-repo-metrics/pkg/common"
+	"github.com/grafana/devtools/pkg/common"
 	"github.com/pkg/errors"
 )
 
