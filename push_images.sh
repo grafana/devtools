@@ -4,8 +4,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-IMAGES=$(make images)
-IMAGE_TAG=$(git rev-parse --abbrev-ref HEAD)
+#IMAGES=$(make images)
+IMAGES="grafana/devtools-github-archive-parser"
+IMAGE_TAG=$(git rev-parse HEAD)
 
 push_image() {
     local image="$1"
