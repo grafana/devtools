@@ -8,7 +8,7 @@ import (
 	ghevents "github.com/grafana/devtools/pkg/streams"
 )
 
-const coreContributorGroupName = "Core Contributor"
+const coreContributorGroupName = "Grafana Labs"
 const contributorGroupName = "Contributor"
 
 func fromCreatedDate(msg interface{}) time.Time {
@@ -27,10 +27,12 @@ func partitionByRepo(msg interface{}) (string, interface{}) {
 }
 
 var actorContributorGroupMap = map[string]string{
+	"adeverteuil":     coreContributorGroupName,
 	"alexanderzobnin": coreContributorGroupName,
 	"bergquist":       coreContributorGroupName,
 	"briangann":       coreContributorGroupName,
 	"bulletfactory":   coreContributorGroupName,
+	"codesome":        coreContributorGroupName,
 	"cstyan":          coreContributorGroupName,
 	"DanCech":         coreContributorGroupName,
 	"daniellee":       coreContributorGroupName,
@@ -48,6 +50,8 @@ var actorContributorGroupMap = map[string]string{
 	"nopzor1200":      coreContributorGroupName,
 	"peterholmberg":   coreContributorGroupName,
 	"replay":          coreContributorGroupName,
+	"RichiH":          coreContributorGroupName,
+	"robert-milan":    coreContributorGroupName,
 	"tomwilkie":       coreContributorGroupName,
 	"torkelo":         coreContributorGroupName,
 	"woodsaj":         coreContributorGroupName,
