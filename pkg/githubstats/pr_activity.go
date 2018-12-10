@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -28,18 +28,18 @@ type PullRequestActivityState struct {
 }
 
 type PullRequestActivityProjections struct {
-	daily                  *streamprojections.StreamProjection
-	sevenDaysMovingAverage *streamprojections.StreamProjection
-	weekly                 *streamprojections.StreamProjection
-	monthly                *streamprojections.StreamProjection
-	quarterly              *streamprojections.StreamProjection
-	yearly                 *streamprojections.StreamProjection
-	all                    *streamprojections.StreamProjection
+	daily                  *projections.StreamProjection
+	sevenDaysMovingAverage *projections.StreamProjection
+	weekly                 *projections.StreamProjection
+	monthly                *projections.StreamProjection
+	quarterly              *projections.StreamProjection
+	yearly                 *projections.StreamProjection
+	all                    *projections.StreamProjection
 }
 
 func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 	p := &PullRequestActivityProjections{}
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(PullRequestEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByPrAuthor).
@@ -48,7 +48,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 		ToStream(DailyPullRequestActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(PullRequestEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Weekly(fromCreatedDate, partitionByRepo, p.partitionByPrAuthor).
@@ -57,7 +57,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 		ToStream(WeeklyPullRequestActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(PullRequestEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Monthly(fromCreatedDate, partitionByRepo, p.partitionByPrAuthor).
@@ -66,7 +66,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 		ToStream(MonthlyPullRequestActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(PullRequestEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Quarterly(fromCreatedDate, partitionByRepo, p.partitionByPrAuthor).
@@ -75,7 +75,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 		ToStream(QuarterlyPullRequestActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(PullRequestEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Yearly(fromCreatedDate, partitionByRepo, p.partitionByPrAuthor).
@@ -84,7 +84,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 		ToStream(YearlyPullRequestActivityStream).
 		Build()
 
-	p.sevenDaysMovingAverage = streamprojections.
+	p.sevenDaysMovingAverage = projections.
 		FromStream(PullRequestEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByPrAuthor).
@@ -94,7 +94,7 @@ func NewPullRequestActivityProjections() *PullRequestActivityProjections {
 		ToStream(SevenDaysMovingAveragePullRequestActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyPullRequestActivityStream,
 			WeeklyPullRequestActivityStream,
@@ -115,7 +115,7 @@ func (p *PullRequestActivityProjections) partitionByPrAuthor(msg interface{}) (s
 	return "proposedBy", mapUserLoginToGroup(evt.Payload.PullRequest.User.Login)
 }
 
-func (p *PullRequestActivityProjections) init(t time.Time, repo, contributorGroup, period string) streamprojections.ProjectionState {
+func (p *PullRequestActivityProjections) init(t time.Time, repo, contributorGroup, period string) projections.ProjectionState {
 	return &PullRequestActivityState{
 		Time:       t,
 		Period:     period,
@@ -143,7 +143,7 @@ func (p *PullRequestActivityProjections) applyMovingAverage(state *PullRequestAc
 	state.ClosedWithUnmergedCommits += msg.ClosedWithUnmergedCommits / float64(windowSize)
 }
 
-func (p *PullRequestActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *PullRequestActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

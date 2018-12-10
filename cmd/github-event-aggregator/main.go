@@ -12,12 +12,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/grafana/devtools/pkg/ghevents"
 	"github.com/grafana/devtools/pkg/githubstats"
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
-	"github.com/grafana/devtools/pkg/streams/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/projections"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -52,7 +51,7 @@ func main() {
 	}
 
 	s := streams.New()
-	projectionEngine := streamprojections.New(s, NewPostgresStreamPersister(toDb))
+	projectionEngine := projections.New(s, NewPostgresStreamPersister(toDb))
 	githubstats.RegisterProjections(projectionEngine)
 
 	events, errors := readEventsFromDb(fromDb)
@@ -161,13 +160,13 @@ func printErrorSummary(errors <-chan error) {
 }
 
 type postgresStreamPersister struct {
-	*streamprojections.StreamPersisterBase
+	*projections.StreamPersisterBase
 	db *sql.DB
 }
 
-func NewPostgresStreamPersister(db *sql.DB) streamprojections.StreamPersister {
+func NewPostgresStreamPersister(db *sql.DB) projections.StreamPersister {
 	return &postgresStreamPersister{
-		StreamPersisterBase: streamprojections.NewStreamPersisterBase(),
+		StreamPersisterBase: projections.NewStreamPersisterBase(),
 		db:                  db,
 	}
 }

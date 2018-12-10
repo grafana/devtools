@@ -1,7 +1,7 @@
 package githubstats
 
 import (
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 var githubLogins = []string{
@@ -36,7 +36,7 @@ var githubLogins = []string{
 	"xlson",
 }
 
-func RegisterProjections(pe streamprojections.StreamProjectionEngine) {
+func RegisterProjections(pe projections.StreamProjectionEngine) {
 	for _, login := range githubLogins {
 		userLoginGroupMap[login] = "Grafana Labs"
 	}

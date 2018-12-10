@@ -1,8 +1,8 @@
 package githubstats
 
 import (
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -17,12 +17,12 @@ const (
 )
 
 type SplitByEventTypeProjections struct {
-	split *streamprojections.StreamProjection
+	split *projections.StreamProjection
 }
 
 func NewSplitByEventTypeProjections() *SplitByEventTypeProjections {
 	p := &SplitByEventTypeProjections{}
-	p.split = streamprojections.
+	p.split = projections.
 		FromStream(GithubEventStream).
 		Filter(p.patchIncorrectRepos).
 		ToStreams(p.toStreams).
@@ -40,13 +40,13 @@ func (p *SplitByEventTypeProjections) patchIncorrectRepos(msg interface{}) bool 
 	return true
 }
 
-func (p *SplitByEventTypeProjections) toStreams(state []streamprojections.ProjectionState) map[string][]streamprojections.ProjectionState {
-	dict := map[string][]streamprojections.ProjectionState{}
+func (p *SplitByEventTypeProjections) toStreams(state []projections.ProjectionState) map[string][]projections.ProjectionState {
+	dict := map[string][]projections.ProjectionState{}
 
 	for _, item := range state {
 		evt := item.(*ghevents.Event)
 		if _, ok := dict[evt.Type]; !ok {
-			dict[evt.Type] = []streamprojections.ProjectionState{}
+			dict[evt.Type] = []projections.ProjectionState{}
 		}
 		dict[evt.Type] = append(dict[evt.Type], item)
 	}
@@ -54,6 +54,6 @@ func (p *SplitByEventTypeProjections) toStreams(state []streamprojections.Projec
 	return dict
 }
 
-func (p *SplitByEventTypeProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *SplitByEventTypeProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.split)
 }

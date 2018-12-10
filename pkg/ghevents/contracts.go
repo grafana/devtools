@@ -1,29 +1,8 @@
 package ghevents
 
 import (
-	"encoding/json"
 	"time"
 )
-
-type EventReaderStats struct {
-	HasEvents bool
-	Start     time.Time
-	End       time.Time
-}
-
-type EventReader interface {
-	Stats() (*EventReaderStats, error)
-	Read(dt time.Time) *EventBatch
-}
-
-type EventWriter interface {
-	Write(dt time.Time, events []*ExtractedEvent) (err error)
-}
-
-type EventReaderWriter interface {
-	EventReader
-	EventWriter
-}
 
 type Repo struct {
 	ID   int    `json:"id"`
@@ -39,28 +18,6 @@ type Actor struct {
 	ID    int    `json:"id"`
 	Login string `json:"login"`
 	Name  string `json:"-"`
-}
-
-type DecodedEvent struct {
-	ID        string          `json:"id"`
-	Type      string          `json:"type"`
-	Public    bool            `json:"public"`
-	CreatedAt time.Time       `json:"created_at"`
-	Actor     *Actor          `json:"actor"`
-	Repo      *Repo           `json:"repo"`
-	Org       *Org            `json:"org"`
-	Payload   json.RawMessage `json:"payload"`
-}
-
-type ExtractedEvent struct {
-	ID               string
-	Type             string
-	Public           bool
-	CreatedAt        time.Time
-	Actor            *Actor
-	Repo             *Repo
-	Org              *Org
-	FullEventPayload json.RawMessage
 }
 
 type Event struct {
@@ -280,12 +237,4 @@ type Team struct {
 	Name       string `json:"name"`
 	Slug       string `json:"slug"`
 	Permission string `json:"permission"`
-}
-
-type EventBatch struct {
-	ID       int64
-	Name     string
-	FromTime time.Time
-	Events   []*ExtractedEvent
-	Err      error
 }

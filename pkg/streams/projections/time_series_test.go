@@ -1,4 +1,4 @@
-package streamprojections
+package projections
 
 import (
 	"testing"

@@ -1,11 +1,11 @@
-package streamprojections
+package projections
 
 import (
 	"reflect"
 	"sort"
 	"time"
 
-	"github.com/grafana/devtools/pkg/streams/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams"
 )
 
 type TimeSeriesProjectionState struct {

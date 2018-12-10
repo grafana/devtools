@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -27,18 +27,18 @@ type IssuesActivityState struct {
 }
 
 type IssuesActivityProjections struct {
-	daily                  *streamprojections.StreamProjection
-	sevenDaysMovingAverage *streamprojections.StreamProjection
-	weekly                 *streamprojections.StreamProjection
-	monthly                *streamprojections.StreamProjection
-	quarterly              *streamprojections.StreamProjection
-	yearly                 *streamprojections.StreamProjection
-	all                    *streamprojections.StreamProjection
+	daily                  *projections.StreamProjection
+	sevenDaysMovingAverage *projections.StreamProjection
+	weekly                 *projections.StreamProjection
+	monthly                *projections.StreamProjection
+	quarterly              *projections.StreamProjection
+	yearly                 *projections.StreamProjection
+	all                    *projections.StreamProjection
 }
 
 func NewIssuesActivityProjections() *IssuesActivityProjections {
 	p := &IssuesActivityProjections{}
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(IssuesEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByIssueAuthor).
@@ -47,7 +47,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 		ToStream(DailyIssuesActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(IssuesEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Weekly(fromCreatedDate, partitionByRepo, p.partitionByIssueAuthor).
@@ -56,7 +56,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 		ToStream(WeeklyIssuesActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(IssuesEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Monthly(fromCreatedDate, partitionByRepo, p.partitionByIssueAuthor).
@@ -65,7 +65,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 		ToStream(MonthlyIssuesActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(IssuesEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Quarterly(fromCreatedDate, partitionByRepo, p.partitionByIssueAuthor).
@@ -74,7 +74,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 		ToStream(QuarterlyIssuesActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(IssuesEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Yearly(fromCreatedDate, partitionByRepo, p.partitionByIssueAuthor).
@@ -83,7 +83,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 		ToStream(YearlyIssuesActivityStream).
 		Build()
 
-	p.sevenDaysMovingAverage = streamprojections.
+	p.sevenDaysMovingAverage = projections.
 		FromStream(IssuesEventStream).
 		Filter(filterByOpenedAndClosedActions).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByIssueAuthor).
@@ -93,7 +93,7 @@ func NewIssuesActivityProjections() *IssuesActivityProjections {
 		ToStream(SevenDaysMovingAverageIssuesActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyIssuesActivityStream,
 			WeeklyIssuesActivityStream,
@@ -114,7 +114,7 @@ func (p *IssuesActivityProjections) partitionByIssueAuthor(msg interface{}) (str
 	return "openedBy", mapUserLoginToGroup(evt.Payload.Issue.User.Login)
 }
 
-func (p *IssuesActivityProjections) init(t time.Time, repo, contributorGroup, period string) streamprojections.ProjectionState {
+func (p *IssuesActivityProjections) init(t time.Time, repo, contributorGroup, period string) projections.ProjectionState {
 	return &IssuesActivityState{
 		Time:     t,
 		Period:   period,
@@ -137,7 +137,7 @@ func (p *IssuesActivityProjections) applyMovingAverage(state *IssuesActivityStat
 	state.Closed += msg.Closed / float64(windowSize)
 }
 
-func (p *IssuesActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *IssuesActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

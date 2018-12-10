@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -24,17 +24,17 @@ type StargazersActivityState struct {
 }
 
 type StargazersActivityProjections struct {
-	daily     *streamprojections.StreamProjection
-	weekly    *streamprojections.StreamProjection
-	monthly   *streamprojections.StreamProjection
-	quarterly *streamprojections.StreamProjection
-	yearly    *streamprojections.StreamProjection
-	all       *streamprojections.StreamProjection
+	daily     *projections.StreamProjection
+	weekly    *projections.StreamProjection
+	monthly   *projections.StreamProjection
+	quarterly *projections.StreamProjection
+	yearly    *projections.StreamProjection
+	all       *projections.StreamProjection
 }
 
 func NewStargazersActivityProjections() *StargazersActivityProjections {
 	p := &StargazersActivityProjections{}
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(WatchEventStream).
 		Daily(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -43,7 +43,7 @@ func NewStargazersActivityProjections() *StargazersActivityProjections {
 		ToStream(DailyStargazersActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(WatchEventStream).
 		Weekly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -52,7 +52,7 @@ func NewStargazersActivityProjections() *StargazersActivityProjections {
 		ToStream(WeeklyStargazersActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(WatchEventStream).
 		Monthly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -61,7 +61,7 @@ func NewStargazersActivityProjections() *StargazersActivityProjections {
 		ToStream(MonthlyStargazersActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(WatchEventStream).
 		Quarterly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -70,7 +70,7 @@ func NewStargazersActivityProjections() *StargazersActivityProjections {
 		ToStream(QuarterlyStargazersActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(WatchEventStream).
 		Yearly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -79,7 +79,7 @@ func NewStargazersActivityProjections() *StargazersActivityProjections {
 		ToStream(YearlyStargazersActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyStargazersActivityStream,
 			WeeklyStargazersActivityStream,
@@ -94,7 +94,7 @@ func NewStargazersActivityProjections() *StargazersActivityProjections {
 	return p
 }
 
-func (p *StargazersActivityProjections) init(t time.Time, repo, period string) streamprojections.ProjectionState {
+func (p *StargazersActivityProjections) init(t time.Time, repo, period string) projections.ProjectionState {
 	return &StargazersActivityState{
 		Time:   t,
 		Period: period,
@@ -110,7 +110,7 @@ func (p *StargazersActivityProjections) applyCummalativeSum(state *StargazersAct
 	state.Count += msg.Count
 }
 
-func (p *StargazersActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *StargazersActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

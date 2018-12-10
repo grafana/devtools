@@ -1,7 +1,7 @@
-package streamprojections
+package projections
 
 import (
-	"github.com/grafana/devtools/pkg/streams/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams"
 )
 
 type FilterFunc func(msg interface{}) bool

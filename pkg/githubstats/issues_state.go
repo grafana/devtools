@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -30,17 +30,17 @@ type IssuesOpenClosedActivityState struct {
 }
 
 type IssuesOpenClosedActivityProjections struct {
-	daily     *streamprojections.StreamProjection
-	weekly    *streamprojections.StreamProjection
-	monthly   *streamprojections.StreamProjection
-	quarterly *streamprojections.StreamProjection
-	yearly    *streamprojections.StreamProjection
-	all       *streamprojections.StreamProjection
+	daily     *projections.StreamProjection
+	weekly    *projections.StreamProjection
+	monthly   *projections.StreamProjection
+	quarterly *projections.StreamProjection
+	yearly    *projections.StreamProjection
+	all       *projections.StreamProjection
 }
 
 func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjections {
 	p := &IssuesOpenClosedActivityProjections{}
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(IssuesEventStream).
 		Daily(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -49,7 +49,7 @@ func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjectio
 		ToStream(DailyIssuesOpenClosedActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(IssuesEventStream).
 		Weekly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -58,7 +58,7 @@ func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjectio
 		ToStream(WeeklyIssuesOpenClosedActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(IssuesEventStream).
 		Monthly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -67,7 +67,7 @@ func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjectio
 		ToStream(MonthlyIssuesOpenClosedActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(IssuesEventStream).
 		Quarterly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -76,7 +76,7 @@ func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjectio
 		ToStream(QuarterlyIssuesOpenClosedActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(IssuesEventStream).
 		Yearly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -85,7 +85,7 @@ func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjectio
 		ToStream(YearlyIssuesOpenClosedActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyIssuesOpenClosedActivityStream,
 			WeeklyIssuesOpenClosedActivityStream,
@@ -100,7 +100,7 @@ func NewIssuesOpenClosedActivityProjections() *IssuesOpenClosedActivityProjectio
 	return p
 }
 
-func (p *IssuesOpenClosedActivityProjections) init(t time.Time, repo, period string) streamprojections.ProjectionState {
+func (p *IssuesOpenClosedActivityProjections) init(t time.Time, repo, period string) projections.ProjectionState {
 	return &IssuesOpenClosedActivityState{
 		Time:   t,
 		Period: period,
@@ -210,7 +210,7 @@ func (p *IssuesOpenClosedActivityProjections) applyCummalativeSum(state *IssuesO
 	state.FeaturesClosed += msg.FeaturesClosed
 }
 
-func (p *IssuesOpenClosedActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *IssuesOpenClosedActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

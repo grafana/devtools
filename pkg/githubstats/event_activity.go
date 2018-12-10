@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -26,18 +26,18 @@ type EventsActivityState struct {
 }
 
 type EventsActivityProjections struct {
-	daily                  *streamprojections.StreamProjection
-	weekly                 *streamprojections.StreamProjection
-	monthly                *streamprojections.StreamProjection
-	quarterly              *streamprojections.StreamProjection
-	yearly                 *streamprojections.StreamProjection
-	sevenDaysMovingAverage *streamprojections.StreamProjection
-	all                    *streamprojections.StreamProjection
+	daily                  *projections.StreamProjection
+	weekly                 *projections.StreamProjection
+	monthly                *projections.StreamProjection
+	quarterly              *projections.StreamProjection
+	yearly                 *projections.StreamProjection
+	sevenDaysMovingAverage *projections.StreamProjection
+	all                    *projections.StreamProjection
 }
 
 func NewEventsActivityProjections() *EventsActivityProjections {
 	p := &EventsActivityProjections{}
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(GithubEventStream).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
@@ -45,7 +45,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 		ToStream(DailyEventsActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(GithubEventStream).
 		Weekly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
@@ -53,7 +53,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 		ToStream(WeeklyEventsActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(GithubEventStream).
 		Monthly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
@@ -61,7 +61,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 		ToStream(MonthlyEventsActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(GithubEventStream).
 		Quarterly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
@@ -69,7 +69,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 		ToStream(QuarterlyEventsActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(GithubEventStream).
 		Yearly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
@@ -77,7 +77,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 		ToStream(YearlyEventsActivityStream).
 		Build()
 
-	p.sevenDaysMovingAverage = streamprojections.
+	p.sevenDaysMovingAverage = projections.
 		FromStream(GithubEventStream).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
@@ -86,7 +86,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 		ToStream(SevenDaysMovingAverageEventsActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyEventsActivityStream,
 			WeeklyEventsActivityStream,
@@ -107,7 +107,7 @@ func (p *EventsActivityProjections) partitionByEventType(msg interface{}) (strin
 	return "eventType", evt.Type
 }
 
-func (p *EventsActivityProjections) init(t time.Time, repo, eventtype, period string) streamprojections.ProjectionState {
+func (p *EventsActivityProjections) init(t time.Time, repo, eventtype, period string) projections.ProjectionState {
 	return &EventsActivityState{Time: t, Period: period, Repo: repo, EventType: eventtype}
 }
 
@@ -119,7 +119,7 @@ func (p *EventsActivityProjections) applyMovingAverage(state *EventsActivityStat
 	state.Count += msg.Count / float64(windowSize)
 }
 
-func (p *EventsActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *EventsActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

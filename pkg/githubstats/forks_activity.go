@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -24,17 +24,17 @@ type ForksActivityState struct {
 }
 
 type ForksActivityProjections struct {
-	daily     *streamprojections.StreamProjection
-	weekly    *streamprojections.StreamProjection
-	monthly   *streamprojections.StreamProjection
-	quarterly *streamprojections.StreamProjection
-	yearly    *streamprojections.StreamProjection
-	all       *streamprojections.StreamProjection
+	daily     *projections.StreamProjection
+	weekly    *projections.StreamProjection
+	monthly   *projections.StreamProjection
+	quarterly *projections.StreamProjection
+	yearly    *projections.StreamProjection
+	all       *projections.StreamProjection
 }
 
 func NewForksActivityProjections() *ForksActivityProjections {
 	p := &ForksActivityProjections{}
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(ForkEventStream).
 		Daily(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -43,7 +43,7 @@ func NewForksActivityProjections() *ForksActivityProjections {
 		ToStream(DailyForksActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(ForkEventStream).
 		Weekly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -52,7 +52,7 @@ func NewForksActivityProjections() *ForksActivityProjections {
 		ToStream(WeeklyForksActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(ForkEventStream).
 		Monthly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -61,7 +61,7 @@ func NewForksActivityProjections() *ForksActivityProjections {
 		ToStream(MonthlyForksActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(ForkEventStream).
 		Quarterly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -70,7 +70,7 @@ func NewForksActivityProjections() *ForksActivityProjections {
 		ToStream(QuarterlyForksActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(ForkEventStream).
 		Yearly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -79,7 +79,7 @@ func NewForksActivityProjections() *ForksActivityProjections {
 		ToStream(YearlyForksActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyForksActivityStream,
 			WeeklyForksActivityStream,
@@ -94,7 +94,7 @@ func NewForksActivityProjections() *ForksActivityProjections {
 	return p
 }
 
-func (p *ForksActivityProjections) init(t time.Time, repo, period string) streamprojections.ProjectionState {
+func (p *ForksActivityProjections) init(t time.Time, repo, period string) projections.ProjectionState {
 	return &ForksActivityState{
 		Time:   t,
 		Period: period,
@@ -110,7 +110,7 @@ func (p *ForksActivityProjections) applyCummalativeSum(state *ForksActivityState
 	state.Count += msg.Count
 }
 
-func (p *ForksActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *ForksActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

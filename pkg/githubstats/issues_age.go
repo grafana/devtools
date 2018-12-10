@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const issuesViewStream = "IssuesView"
@@ -19,12 +19,12 @@ type issuesViewState struct {
 }
 
 type issuesViewProjections struct {
-	view *streamprojections.StreamProjection
+	view *projections.StreamProjection
 }
 
 func newIssuesViewProjections() *issuesViewProjections {
 	p := &issuesViewProjections{}
-	p.view = streamprojections.
+	p.view = projections.
 		FromStream(IssuesEventStream).
 		PartitionBy(p.partitionByIssueID, partitionByRepo).
 		Init(p.init).
@@ -40,7 +40,7 @@ func (p *issuesViewProjections) partitionByIssueID(msg interface{}) (string, int
 	return "id", evt.Payload.Issue.ID
 }
 
-func (p *issuesViewProjections) init(id int, repo string) streamprojections.ProjectionState {
+func (p *issuesViewProjections) init(id int, repo string) projections.ProjectionState {
 	return &issuesViewState{
 		id:   id,
 		repo: repo,
@@ -60,7 +60,7 @@ func (p *issuesViewProjections) apply(state *issuesViewState, evt *ghevents.Even
 	}
 }
 
-func (p *issuesViewProjections) register(engine streamprojections.StreamProjectionEngine) {
+func (p *issuesViewProjections) register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.view)
 }
 
@@ -85,13 +85,13 @@ type IssuesAgeState struct {
 
 type IssuesAgeProjections struct {
 	ViewProjections        *issuesViewProjections
-	daily                  *streamprojections.StreamProjection
-	sevenDaysMovingAverage *streamprojections.StreamProjection
-	weekly                 *streamprojections.StreamProjection
-	monthly                *streamprojections.StreamProjection
-	quarterly              *streamprojections.StreamProjection
-	yearly                 *streamprojections.StreamProjection
-	all                    *streamprojections.StreamProjection
+	daily                  *projections.StreamProjection
+	sevenDaysMovingAverage *projections.StreamProjection
+	weekly                 *projections.StreamProjection
+	monthly                *projections.StreamProjection
+	quarterly              *projections.StreamProjection
+	yearly                 *projections.StreamProjection
+	all                    *projections.StreamProjection
 }
 
 func NewIssuesAgeProjections() *IssuesAgeProjections {
@@ -99,7 +99,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 
 	p.ViewProjections = newIssuesViewProjections()
 
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(issuesViewStream).
 		Filter(p.filterByClosed).
 		Daily(p.partitionByClosedAt, p.partitionByRepo, p.partitionByProposedBy).
@@ -109,7 +109,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 		ToStream(DailyIssuesAgeStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(issuesViewStream).
 		Filter(p.filterByClosed).
 		Weekly(p.partitionByClosedAt, p.partitionByRepo, p.partitionByProposedBy).
@@ -119,7 +119,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 		ToStream(WeeklyIssuesAgeStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(issuesViewStream).
 		Filter(p.filterByClosed).
 		Monthly(p.partitionByClosedAt, p.partitionByRepo, p.partitionByProposedBy).
@@ -129,7 +129,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 		ToStream(MonthlyIssuesAgeStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(issuesViewStream).
 		Filter(p.filterByClosed).
 		Quarterly(p.partitionByClosedAt, p.partitionByRepo, p.partitionByProposedBy).
@@ -139,7 +139,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 		ToStream(QuarterlyIssuesAgeStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(issuesViewStream).
 		Filter(p.filterByClosed).
 		Yearly(p.partitionByClosedAt, p.partitionByRepo, p.partitionByProposedBy).
@@ -149,7 +149,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 		ToStream(YearlyIssuesAgeStream).
 		Build()
 
-	p.sevenDaysMovingAverage = streamprojections.
+	p.sevenDaysMovingAverage = projections.
 		FromStream(issuesViewStream).
 		Filter(p.filterByClosed).
 		Daily(p.partitionByClosedAt, p.partitionByRepo, p.partitionByProposedBy).
@@ -160,7 +160,7 @@ func NewIssuesAgeProjections() *IssuesAgeProjections {
 		ToStream(SevenDaysMovingAverageIssuesAgeStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyIssuesAgeStream,
 			WeeklyIssuesAgeStream,
@@ -196,7 +196,7 @@ func (p *IssuesAgeProjections) partitionByProposedBy(msg interface{}) (string, i
 	return "openedBy", mapUserLoginToGroup(state.openedBy)
 }
 
-func (p *IssuesAgeProjections) init(t time.Time, repo, openedBy, period string) streamprojections.ProjectionState {
+func (p *IssuesAgeProjections) init(t time.Time, repo, openedBy, period string) projections.ProjectionState {
 	return &IssuesAgeState{
 		Time:     t,
 		Period:   period,
@@ -210,7 +210,7 @@ func (p *IssuesAgeProjections) apply(state *IssuesAgeState, viewState *issuesVie
 	state.ageItems = append(state.ageItems, viewState.closedAt.Sub(viewState.openedAt).Seconds())
 }
 
-func (p *IssuesAgeProjections) done(stateArr []streamprojections.ProjectionState) {
+func (p *IssuesAgeProjections) done(stateArr []projections.ProjectionState) {
 	for _, s := range stateArr {
 		ageState := s.(*IssuesAgeState)
 		ageState.MedianAge = percentile(0.5, ageState.ageItems)
@@ -221,7 +221,7 @@ func (p *IssuesAgeProjections) applyMovingAverage(state *IssuesAgeState, msg *Is
 	state.MedianAge += msg.MedianAge / float64(windowSize)
 }
 
-func (p *IssuesAgeProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *IssuesAgeProjections) Register(engine projections.StreamProjectionEngine) {
 	p.ViewProjections.register(engine)
 	engine.Register(p.daily)
 	engine.Register(p.weekly)

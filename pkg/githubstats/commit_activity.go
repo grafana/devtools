@@ -3,8 +3,8 @@ package githubstats
 import (
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 const (
@@ -26,20 +26,20 @@ type CommitActivityState struct {
 }
 
 type CommitActivityProjections struct {
-	daily                        *streamprojections.StreamProjection
-	weekly                       *streamprojections.StreamProjection
-	monthly                      *streamprojections.StreamProjection
-	quarterly                    *streamprojections.StreamProjection
-	yearly                       *streamprojections.StreamProjection
-	sevenDaysMovingAverage       *streamprojections.StreamProjection
-	twentyFourHoursMovingAverage *streamprojections.StreamProjection
-	all                          *streamprojections.StreamProjection
+	daily                        *projections.StreamProjection
+	weekly                       *projections.StreamProjection
+	monthly                      *projections.StreamProjection
+	quarterly                    *projections.StreamProjection
+	yearly                       *projections.StreamProjection
+	sevenDaysMovingAverage       *projections.StreamProjection
+	twentyFourHoursMovingAverage *projections.StreamProjection
+	all                          *projections.StreamProjection
 }
 
 func NewCommitActivityProjections() *CommitActivityProjections {
 	p := &CommitActivityProjections{}
 
-	p.daily = streamprojections.
+	p.daily = projections.
 		FromStream(PushEventStream).
 		Daily(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -47,7 +47,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(DailyCommitActivityStream).
 		Build()
 
-	p.weekly = streamprojections.
+	p.weekly = projections.
 		FromStream(PushEventStream).
 		Weekly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -55,7 +55,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(WeeklyCommitActivityStream).
 		Build()
 
-	p.monthly = streamprojections.
+	p.monthly = projections.
 		FromStream(PushEventStream).
 		Monthly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -63,7 +63,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(MonthlyCommitActivityStream).
 		Build()
 
-	p.quarterly = streamprojections.
+	p.quarterly = projections.
 		FromStream(PushEventStream).
 		Quarterly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -71,7 +71,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(QuarterlyCommitActivityStream).
 		Build()
 
-	p.yearly = streamprojections.
+	p.yearly = projections.
 		FromStream(PushEventStream).
 		Yearly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -79,7 +79,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(YearlyCommitActivityStream).
 		Build()
 
-	p.sevenDaysMovingAverage = streamprojections.
+	p.sevenDaysMovingAverage = projections.
 		FromStream(PushEventStream).
 		Daily(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -88,7 +88,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(SevenDaysMovingAverageCommitActivityStream).
 		Build()
 
-	p.twentyFourHoursMovingAverage = streamprojections.
+	p.twentyFourHoursMovingAverage = projections.
 		FromStream(PushEventStream).
 		Hourly(fromCreatedDate, partitionByRepo).
 		Init(p.init).
@@ -97,7 +97,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 		ToStream(TwentyFourHoursMovingAverageCommitActivityStream).
 		Build()
 
-	p.all = streamprojections.
+	p.all = projections.
 		FromStreams(
 			DailyCommitActivityStream,
 			WeeklyCommitActivityStream,
@@ -114,7 +114,7 @@ func NewCommitActivityProjections() *CommitActivityProjections {
 	return p
 }
 
-func (p *CommitActivityProjections) init(t time.Time, repo, period string) streamprojections.ProjectionState {
+func (p *CommitActivityProjections) init(t time.Time, repo, period string) projections.ProjectionState {
 	return &CommitActivityState{
 		Time:    t,
 		Period:  period,
@@ -133,7 +133,7 @@ func (p *CommitActivityProjections) applyMovingAverage(state *CommitActivityStat
 	state.Commits += msg.Commits / float64(windowSize)
 }
 
-func (p *CommitActivityProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *CommitActivityProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.daily)
 	engine.Register(p.weekly)
 	engine.Register(p.monthly)

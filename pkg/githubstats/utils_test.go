@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
+	ghevents "github.com/grafana/devtools/pkg/ghevents"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

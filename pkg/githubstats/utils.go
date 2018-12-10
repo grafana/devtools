@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/ghevents"
 )
 
 func fromCreatedDate(msg interface{}) time.Time {

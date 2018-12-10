@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	ghevents "github.com/grafana/devtools/pkg/streams"
-	"github.com/grafana/devtools/pkg/streams/pkg/streamprojections"
+	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
 type ReleaseAnnotationState struct {
@@ -18,12 +18,12 @@ type ReleaseAnnotationState struct {
 }
 
 type ReleaseAnnotationProjections struct {
-	releaseAnnotation *streamprojections.StreamProjection
+	releaseAnnotation *projections.StreamProjection
 }
 
 func NewReleaseAnnotationProjections() *ReleaseAnnotationProjections {
 	p := &ReleaseAnnotationProjections{}
-	p.releaseAnnotation = streamprojections.
+	p.releaseAnnotation = projections.
 		FromStream(ReleaseEventStream).
 		PartitionBy(p.partitionByID).
 		Init(p.init).
@@ -39,7 +39,7 @@ func (p *ReleaseAnnotationProjections) partitionByID(msg interface{}) (string, i
 	return "id", evt.Payload.Release.ID
 }
 
-func (p *ReleaseAnnotationProjections) init(id int) streamprojections.ProjectionState {
+func (p *ReleaseAnnotationProjections) init(id int) projections.ProjectionState {
 	return &ReleaseAnnotationState{ID: id}
 }
 
@@ -54,6 +54,6 @@ func (p *ReleaseAnnotationProjections) apply(state *ReleaseAnnotationState, evt 
 	}
 }
 
-func (p *ReleaseAnnotationProjections) Register(engine streamprojections.StreamProjectionEngine) {
+func (p *ReleaseAnnotationProjections) Register(engine projections.StreamProjectionEngine) {
 	engine.Register(p.releaseAnnotation)
 }

@@ -1,11 +1,11 @@
-package streamprojections
+package projections
 
 import (
 	"fmt"
 	"reflect"
 	"sort"
 
-	"github.com/grafana/devtools/pkg/streams/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams"
 )
 
 type PartitionFunc func(msg interface{}) (key string, value interface{})
