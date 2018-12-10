@@ -20,7 +20,7 @@ test.db-journal
 test2.db
 log.log
 
-cmd/archive/archive
+cmd/github-archive-parser/github-archive-parser
 cmd/aggregate/aggregate
 cmd/streams/streams
 cmd/bots/bots
