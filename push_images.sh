@@ -12,6 +12,8 @@ push_image() {
     local image="$1"
     echo "Pushing ${image}:${IMAGE_TAG}"
     docker push ${image}:${IMAGE_TAG}
+
+    echo "Pushing ${image}:latest"
     docker push ${image}:latest
 }
 
