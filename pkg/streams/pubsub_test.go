@@ -7,8 +7,8 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestStreeams(t *testing.T) {
-	Convey("Test streams", t, func() {
+func TestPubSub(t *testing.T) {
+	Convey("Test pub/sub", t, func() {
 		e := New()
 
 		Convey("Publish to topic with no subscriber should drain messages", func() {

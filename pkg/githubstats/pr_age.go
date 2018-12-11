@@ -7,7 +7,7 @@ import (
 	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
-const pullRequestViewStream = "PullRequestView"
+const pullRequestViewStream = "pr_view"
 
 type pullRequestViewState struct {
 	id       int
@@ -67,13 +67,13 @@ func (p *pullRequestViewProjections) register(engine projections.StreamProjectio
 }
 
 const (
-	DailyPullRequestAgeStream                  = "DailyPullRequestAge"
-	WeeklyPullRequestAgeStream                 = "WeeklyPullRequestAge"
-	MonthlyPullRequestAgeStream                = "MonthlyPullRequestAge"
-	QuarterlyPullRequestAgeStream              = "QuarterlyPullRequestAge"
-	YearlyPullRequestAgeStream                 = "YearlyPullRequestAge"
-	PullRequestAgeStream                       = "PullRequestAgeStream"
-	SevenDaysMovingAveragePullRequestAgeStream = "SevenDaysMovingAveragePullRequestAge"
+	DailyPullRequestAgeStream                  = "d_pr_age"
+	WeeklyPullRequestAgeStream                 = "w_pr_age"
+	MonthlyPullRequestAgeStream                = "m_pr_age"
+	QuarterlyPullRequestAgeStream              = "q_pr_age"
+	YearlyPullRequestAgeStream                 = "y_pr_age"
+	SevenDaysMovingAveragePullRequestAgeStream = "d7_pr_age"
+	PullRequestAgeStream                       = "all_pr_age"
 )
 
 type PullRequestAgeState struct {
@@ -238,13 +238,13 @@ func (p *PullRequestAgeProjections) Register(engine projections.StreamProjection
 }
 
 const (
-	DailyPullRequestOpenedToMergedStream                  = "DailyPullRequestOpenedToMerged"
-	WeeklyPullRequestOpenedToMergedStream                 = "WeeklyPullRequestOpenedToMerged"
-	MonthlyPullRequestOpenedToMergedStream                = "MonthlyPullRequestOpenedToMerged"
-	QuarterlyPullRequestOpenedToMergedStream              = "QuarterlyPullRequestOpenedToMerged"
-	YearlyPullRequestOpenedToMergedStream                 = "YearlyPullRequestOpenedToMerged"
-	PullRequestOpenedToMergedStream                       = "PullRequestOpenedToMergedStream"
-	SevenDaysMovingAveragePullRequestOpenedToMergedStream = "SevenDaysMovingAveragePullRequestOpenedToMerged"
+	DailyPullRequestOpenedToMergedStream                  = "d_pr_otm"
+	WeeklyPullRequestOpenedToMergedStream                 = "w_pr_otm"
+	MonthlyPullRequestOpenedToMergedStream                = "m_pr_otm"
+	QuarterlyPullRequestOpenedToMergedStream              = "q_pr_otm"
+	YearlyPullRequestOpenedToMergedStream                 = "y_pr_otm"
+	SevenDaysMovingAveragePullRequestOpenedToMergedStream = "d7_pr_otm"
+	PullRequestOpenedToMergedStream                       = "all_pr_otm"
 )
 
 type PullRequestOpenedToMergedState struct {

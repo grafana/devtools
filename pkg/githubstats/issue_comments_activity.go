@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	DailyIssueCommentsActivityStream                  = "DailyIssueCommentsActvity"
-	WeeklyIssueCommentsActivityStream                 = "WeeklyIssueCommentsActvity"
-	MonthlyIssueCommentsActivityStream                = "MonthlyIssueCommentsActvity"
-	QuarterlyIssueCommentsActivityStream              = "QuarterlyIssueCommentsActvity"
-	YearlyIssueCommentsActivityStream                 = "YearlyIssueCommentsActvity"
-	IssueCommentsActivityStream                       = "IssueCommentsActivityStream"
-	SevenDaysMovingAverageIssueCommentsActivityStream = "SevenDaysMovingAverageIssueCommentsActivity"
+	DailyIssueCommentsActivityStream                  = "d_issue_comments"
+	WeeklyIssueCommentsActivityStream                 = "w_issue_comments"
+	MonthlyIssueCommentsActivityStream                = "m_issue_comments"
+	QuarterlyIssueCommentsActivityStream              = "q_issue_comments"
+	YearlyIssueCommentsActivityStream                 = "y_issue_comments"
+	SevenDaysMovingAverageIssueCommentsActivityStream = "d7_issue_comments"
+	IssueCommentsActivityStream                       = "all_issue_comments"
 )
 
 type IssueCommentsActivityState struct {

@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	DailyPullRequestActivityStream                  = "DailyPullRequestActivity"
-	WeeklyPullRequestActivityStream                 = "WeeklyPullRequestActivity"
-	MonthlyPullRequestActivityStream                = "MonthlyPullRequestActivity"
-	QuarterlyPullRequestActivityStream              = "QuarterlyPullRequestActivity"
-	YearlyPullRequestActivityStream                 = "YearlyPullRequestActivity"
-	PullRequestActivityStream                       = "PullRequestActivityStream"
-	SevenDaysMovingAveragePullRequestActivityStream = "SevenDaysMovingAveragePullRequestActivity"
+	DailyPullRequestActivityStream                  = "d_prs"
+	WeeklyPullRequestActivityStream                 = "w_prs"
+	MonthlyPullRequestActivityStream                = "m_prs"
+	QuarterlyPullRequestActivityStream              = "q_prs"
+	YearlyPullRequestActivityStream                 = "y_prs"
+	SevenDaysMovingAveragePullRequestActivityStream = "d7_prs"
+	PullRequestActivityStream                       = "all_prs"
 )
 
 type PullRequestActivityState struct {

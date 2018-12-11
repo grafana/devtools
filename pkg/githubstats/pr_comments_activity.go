@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	DailyPullRequestCommentsActivityStream                  = "DailyPullRequestCommentsActvity"
-	WeeklyPullRequestCommentsActivityStream                 = "WeeklyPullRequestCommentsActvity"
-	MonthlyPullRequestCommentsActivityStream                = "MonthlyPullRequestCommentsActvity"
-	QuarterlyPullRequestCommentsActivityStream              = "QuarterlyPullRequestCommentsActvity"
-	YearlyPullRequestCommentsActivityStream                 = "YearlyPullRequestCommentsActvity"
-	PullRequestCommentsActivityStream                       = "PullRequestCommentsActivityStream"
-	SevenDaysMovingAveragePullRequestCommentsActivityStream = "SevenDaysMovingAveragePullRequestCommentsActivity"
+	DailyPullRequestCommentsActivityStream                  = "d_pr_comments"
+	WeeklyPullRequestCommentsActivityStream                 = "w_pr_comments"
+	MonthlyPullRequestCommentsActivityStream                = "m_pr_comments"
+	QuarterlyPullRequestCommentsActivityStream              = "q_pr_comments"
+	YearlyPullRequestCommentsActivityStream                 = "y_pr_comments"
+	SevenDaysMovingAveragePullRequestCommentsActivityStream = "d7_pr_comments"
+	PullRequestCommentsActivityStream                       = "all_pr_comments"
 )
 
 type PullRequestCommentsActivityState struct {

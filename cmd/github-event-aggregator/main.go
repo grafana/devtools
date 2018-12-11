@@ -20,14 +20,18 @@ import (
 )
 
 func main() {
+	start := time.Now()
+
 	var (
 		database             string
 		fromConnectionString string
 		toConnectionString   string
+		limit                int64
 	)
 	flag.StringVar(&database, "database", "", "database type")
 	flag.StringVar(&fromConnectionString, "fromConnectionstring", "", "")
 	flag.StringVar(&toConnectionString, "toConnectionstring", "", "")
+	flag.Int64Var(&limit, "limit", 5000, "")
 	flag.Parse()
 
 	fromDb, err := sql.Open(database, fromConnectionString)
@@ -54,7 +58,7 @@ func main() {
 	projectionEngine := projections.New(s, NewPostgresStreamPersister(toDb))
 	githubstats.RegisterProjections(projectionEngine)
 
-	events, errors := readEventsFromDb(fromDb)
+	events, errors := readEventsFromDb(fromDb, limit)
 	go printErrorSummary(errors)
 
 	var wg sync.WaitGroup
@@ -67,9 +71,12 @@ func main() {
 
 	s.Publish(githubstats.GithubEventStream, events)
 	wg.Wait()
+
+	elapsed := time.Since(start)
+	log.Printf("Done. Took %s\n", elapsed)
 }
 
-func readEventsFromDb(db *sql.DB) (streams.Readable, <-chan error) {
+func readEventsFromDb(db *sql.DB, limit int64) (streams.Readable, <-chan error) {
 	r, w := streams.NewReadableWritable()
 	outErr := make(chan error)
 
@@ -86,16 +93,16 @@ func readEventsFromDb(db *sql.DB) (streams.Readable, <-chan error) {
 			return
 		}
 
-		totalPages := totalRows / 1000
+		totalPages := totalRows / limit
 		readEvents := int64(0)
 
 		log.Println("Reading events...", "total rows", totalRows, "total pages", totalPages)
 
 		for n := int64(0); n <= totalPages; n++ {
 			if n > 0 {
-				offset = n * 1000
+				offset = n * limit
 			}
-			rows, err := db.Query("SELECT id, created_at, data FROM github_event ORDER BY id ASC LIMIT 1000 OFFSET $1", offset)
+			rows, err := db.Query("SELECT id, created_at, data FROM github_event ORDER BY id ASC LIMIT $1 OFFSET $2", limit, offset)
 			if err != nil {
 				outErr <- err
 				return

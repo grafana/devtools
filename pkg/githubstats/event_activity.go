@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	DailyEventsActivityStream                  = "DailyEventsActvity"
-	WeeklyEventsActivityStream                 = "WeeklyEventsActvity"
-	MonthlyEventsActivityStream                = "MonthlyEventsActvity"
-	QuarterlyEventsActivityStream              = "QuarterlyEventsActvity"
-	YearlyEventsActivityStream                 = "YearlyEventsActvity"
-	SevenDaysMovingAverageEventsActivityStream = "SevenDaysMovingAverageEvents"
-	EventsActivityStream                       = "EventsActivityStream"
+	DailyEventsActivityStream                  = "d_events"
+	WeeklyEventsActivityStream                 = "w_events"
+	MonthlyEventsActivityStream                = "m_events"
+	QuarterlyEventsActivityStream              = "q_events"
+	YearlyEventsActivityStream                 = "y_events"
+	SevenDaysMovingAverageEventsActivityStream = "d7_events"
+	EventsActivityStream                       = "all_events"
 )
 
 type EventsActivityState struct {

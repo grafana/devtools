@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	DailyStargazersActivityStream     = "DailyStargazersActvity"
-	WeeklyStargazersActivityStream    = "WeeklyStargazersActvity"
-	MonthlyStargazersActivityStream   = "MonthlyStargazersActvity"
-	QuarterlyStargazersActivityStream = "QuarterlyStargazersActvity"
-	YearlyStargazersActivityStream    = "YearlyStargazersActvity"
-	StargazersActivityStream          = "StargazersActivityStream"
+	DailyStargazersActivityStream     = "d_stars"
+	WeeklyStargazersActivityStream    = "w_stars"
+	MonthlyStargazersActivityStream   = "m_stars"
+	QuarterlyStargazersActivityStream = "q_stars"
+	YearlyStargazersActivityStream    = "y_stars"
+	StargazersActivityStream          = "all_stars"
 )
 
 type StargazersActivityState struct {

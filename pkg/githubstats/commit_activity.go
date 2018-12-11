@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	DailyCommitActivityStream                        = "DailyCommitActvity"
-	WeeklyCommitActivityStream                       = "WeeklyCommitActvity"
-	MonthlyCommitActivityStream                      = "MonthlyCommitActvity"
-	QuarterlyCommitActivityStream                    = "QuarterlyCommitActvity"
-	YearlyCommitActivityStream                       = "YearlyCommitActvity"
-	CommitActivityStream                             = "CommitActivityStream"
-	SevenDaysMovingAverageCommitActivityStream       = "SevenDaysMovingAverageCommitActivity"
-	TwentyFourHoursMovingAverageCommitActivityStream = "24HoursMovingAverageCommitActivity"
+	DailyCommitActivityStream                        = "d_commits"
+	WeeklyCommitActivityStream                       = "w_commits"
+	MonthlyCommitActivityStream                      = "m_commits"
+	QuarterlyCommitActivityStream                    = "q_commits"
+	YearlyCommitActivityStream                       = "y_commits"
+	SevenDaysMovingAverageCommitActivityStream       = "d7_commits"
+	TwentyFourHoursMovingAverageCommitActivityStream = "h24_commits"
+	CommitActivityStream                             = "all_commits"
 )
 
 type CommitActivityState struct {

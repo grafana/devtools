@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	DailyForksActivityStream     = "DailyForksActvity"
-	WeeklyForksActivityStream    = "WeeklyForksActvity"
-	MonthlyForksActivityStream   = "MonthlyForksActvity"
-	QuarterlyForksActivityStream = "QuarterlyForksActvity"
-	YearlyForksActivityStream    = "YearlyForksActvity"
-	ForksActivityStream          = "ForksActivityStream"
+	DailyForksActivityStream     = "d_forks"
+	WeeklyForksActivityStream    = "w_forks"
+	MonthlyForksActivityStream   = "m_forks"
+	QuarterlyForksActivityStream = "q_forks"
+	YearlyForksActivityStream    = "y_forks"
+	ForksActivityStream          = "all_forks"
 )
 
 type ForksActivityState struct {

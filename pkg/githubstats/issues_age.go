@@ -7,7 +7,7 @@ import (
 	"github.com/grafana/devtools/pkg/streams/projections"
 )
 
-const issuesViewStream = "IssuesView"
+const issuesViewStream = "issues_view"
 
 type issuesViewState struct {
 	id       int
@@ -65,13 +65,13 @@ func (p *issuesViewProjections) register(engine projections.StreamProjectionEngi
 }
 
 const (
-	DailyIssuesAgeStream                  = "DailyIssuesAge"
-	WeeklyIssuesAgeStream                 = "WeeklyIssuesAge"
-	MonthlyIssuesAgeStream                = "MonthlyIssuesAge"
-	QuarterlyIssuesAgeStream              = "QuarterlyIssuesAge"
-	YearlyIssuesAgeStream                 = "YearlyIssuesAge"
-	IssuesAgeStream                       = "IssuesAgeStream"
-	SevenDaysMovingAverageIssuesAgeStream = "SevenDaysMovingAverageIssuesAge"
+	DailyIssuesAgeStream                  = "d_issues_age"
+	WeeklyIssuesAgeStream                 = "w_issues_age"
+	MonthlyIssuesAgeStream                = "m_issues_age"
+	QuarterlyIssuesAgeStream              = "q_issues_age"
+	YearlyIssuesAgeStream                 = "y_issues_age"
+	SevenDaysMovingAverageIssuesAgeStream = "d7_issues_age"
+	IssuesAgeStream                       = "all_issues_age"
 )
 
 type IssuesAgeState struct {

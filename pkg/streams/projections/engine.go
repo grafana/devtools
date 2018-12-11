@@ -1,6 +1,9 @@
 package projections
 
 import (
+	"log"
+	"strings"
+
 	"github.com/grafana/devtools/pkg/streams"
 )
 
@@ -71,7 +74,10 @@ type StreamProjection struct {
 
 func (sp *StreamProjection) createSubscriber() ([]string, streams.SubscribeFunc) {
 	subscribeFn := func(publisher streams.Publisher, stream streams.Readable) {
+		fromStreams := strings.Join(sp.FromStreams, ", ")
+		log.Println("Running projection...", "fromStreams", fromStreams)
 		state := sp.Projection.Run(stream)
+		log.Println("Projection done", "fromStreams", fromStreams)
 
 		if sp.ToStreams != nil {
 			outputStreams := sp.ToStreams(state)
@@ -79,11 +85,16 @@ func (sp *StreamProjection) createSubscriber() ([]string, streams.SubscribeFunc)
 			for topic, items := range outputStreams {
 				go func(topic string, items []ProjectionState) {
 					out := make(chan streams.T, 1)
+					log.Println("Publishing projection state...", "topic", topic, "fromStreams", fromStreams)
 					publisher.Publish(topic, out)
 
+					msgCount := int64(0)
 					for _, item := range items {
+						msgCount++
 						out <- item
 					}
+
+					log.Println("Published projection result", "topic", topic, "fromStreams", fromStreams, "messages", msgCount)
 
 					close(out)
 				}(topic, items)
