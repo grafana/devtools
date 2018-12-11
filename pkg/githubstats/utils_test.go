@@ -56,6 +56,23 @@ func TestUtils(t *testing.T) {
 			So(mapUserLoginToGroup("user3"), ShouldEqual, "Contributor")
 		})
 
+		Convey("filterAndPatchRepos", func() {
+			skipRepos = []string{"org/repo1", "org/repo2"}
+			mapRepos = map[string]string{"org/repo-old": "org/repo-new"}
+			msg := &ghevents.Event{Repo: &ghevents.Repo{ID: 1, Name: "org/repo1"}}
+			So(filterAndPatchRepos(reflect.ValueOf(msg).Interface()), ShouldBeFalse)
+
+			msg = &ghevents.Event{Repo: &ghevents.Repo{ID: 1, Name: "org/repo2"}}
+			So(filterAndPatchRepos(reflect.ValueOf(msg).Interface()), ShouldBeFalse)
+
+			msg = &ghevents.Event{Repo: &ghevents.Repo{ID: 1, Name: "org/repo3"}}
+			So(filterAndPatchRepos(reflect.ValueOf(msg).Interface()), ShouldBeTrue)
+
+			msg = &ghevents.Event{Repo: &ghevents.Repo{ID: 1, Name: "org/repo-old"}}
+			So(filterAndPatchRepos(reflect.ValueOf(msg).Interface()), ShouldBeTrue)
+			So(msg.Repo.Name, ShouldEqual, "org/repo-new")
+		})
+
 		Convey("isBot", func() {
 			So(isBot("CLAassistant"), ShouldBeTrue)
 			So(isBot("codecov-io"), ShouldBeTrue)

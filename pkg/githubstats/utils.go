@@ -8,10 +8,20 @@ import (
 	"github.com/grafana/devtools/pkg/ghevents"
 )
 
-func patchIncorrectRepos(msg interface{}) bool {
+var skipRepos = []string{}
+var mapRepos = map[string]string{}
+
+func filterAndPatchRepos(msg interface{}) bool {
 	evt := msg.(*ghevents.Event)
-	if evt.Repo.Name == "grafana/" {
-		evt.Repo.Name = "grafana/grafana"
+
+	for _, repo := range skipRepos {
+		if repo == evt.Repo.Name {
+			return false
+		}
+	}
+
+	if mapToRepo, ok := mapRepos[evt.Repo.Name]; ok {
+		evt.Repo.Name = mapToRepo
 	}
 
 	return true

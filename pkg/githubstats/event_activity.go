@@ -39,7 +39,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 	p := &EventsActivityProjections{}
 	p.daily = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
 		Apply(p.apply).
@@ -48,7 +48,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 
 	p.weekly = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		Weekly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
 		Apply(p.apply).
@@ -57,7 +57,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 
 	p.monthly = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		Monthly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
 		Apply(p.apply).
@@ -66,7 +66,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 
 	p.quarterly = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		Quarterly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
 		Apply(p.apply).
@@ -75,7 +75,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 
 	p.yearly = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		Yearly(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
 		Apply(p.apply).
@@ -84,7 +84,7 @@ func NewEventsActivityProjections() *EventsActivityProjections {
 
 	p.sevenDaysMovingAverage = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		Daily(fromCreatedDate, partitionByRepo, p.partitionByEventType).
 		Init(p.init).
 		Apply(p.apply).

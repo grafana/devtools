@@ -24,7 +24,7 @@ func NewSplitByEventTypeProjections() *SplitByEventTypeProjections {
 	p := &SplitByEventTypeProjections{}
 	p.split = projections.
 		FromStream(GithubEventStream).
-		Filter(patchIncorrectRepos).
+		Filter(filterAndPatchRepos).
 		ToStreams(p.toStreams).
 		Build()
 
