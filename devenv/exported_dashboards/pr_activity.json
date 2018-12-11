@@ -60,11 +60,12 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1544471316492,
+  "iteration": 1544478894509,
   "links": [],
   "panels": [
     {
       "aliasColors": {
+        "Closed with unmerged commits": "#bf1b00",
         "Issues Closed": "#eab839",
         "Issues Opened": "#629e51",
         "Issues Opened Year over year": "#bf1b00",
@@ -412,6 +413,126 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {
+        "Closed with unmerged commits": "#bf1b00",
+        "Count": "#bf1b00",
+        "Issues Closed": "#eab839",
+        "Issues Opened": "#629e51",
+        "Issues Opened Year over year": "#bf1b00",
+        "Merged": "#6f42c1",
+        "Proposed": "#28a745"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "${DS_GITHUB_STATS}",
+      "decimals": 2,
+      "fill": 1,
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 5,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": null,
+        "sortDesc": null,
+        "total": true,
+        "values": true
+      },
+      "lines": false,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "expr": "",
+          "format": "time_series",
+          "group": [],
+          "intervalFactor": 1,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  $__time(time),\n  sum(closed_with_unmerged_commits) AS \"Count\"\nFROM\n  pr_activity\nWHERE\n  $__unixEpochFilter(time) AND\n  period = '${period}' AND\n  repo IN(${repo}) AND\n  proposed_by IN(${proposed_by})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Pull Requests Closed With Unmerged Commits ($period)",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
   "refresh": false,
@@ -522,5 +643,5 @@
   "timezone": "",
   "title": "Pull Request Activity",
   "uid": "xMxeBahiz",
-  "version": 4
+  "version": 5
 }
