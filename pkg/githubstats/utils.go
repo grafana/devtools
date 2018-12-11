@@ -23,6 +23,21 @@ func partitionByRepo(msg interface{}) (string, interface{}) {
 	return "repo", evt.Repo.Name
 }
 
+var bots = []string{
+	"CLAassistant",
+	"codecov-io",
+}
+
+func isBot(login string) bool {
+	for _, bot := range bots {
+		if bot == login {
+			return true
+		}
+	}
+
+	return false
+}
+
 var userLoginGroupMap = map[string]string{}
 
 func mapUserLoginToGroup(login string) string {

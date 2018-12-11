@@ -150,22 +150,22 @@ type Branch struct {
 
 // Issue - GHA Issue structure
 type Issue struct {
-	ID        int        `json:"id"`
-	Number    int        `json:"number"`
-	Comments  int        `json:"comments"`
-	Title     string     `json:"title"`
-	State     string     `json:"state"`
-	Locked    bool       `json:"locked"`
-	Body      *string    `json:"body"`
-	User      Actor      `json:"user"`
-	Assignee  *Actor     `json:"assignee"`
-	Labels    []Label    `json:"labels"`
-	Assignees []Actor    `json:"assignees"`
-	Milestone *Milestone `json:"milestone"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	ClosedAt  *time.Time `json:"closed_at"`
-	// PullRequest *Dummy     `json:"pull_request"`
+	ID          int        `json:"id"`
+	Number      int        `json:"number"`
+	Comments    int        `json:"comments"`
+	Title       string     `json:"title"`
+	State       string     `json:"state"`
+	Locked      bool       `json:"locked"`
+	Body        *string    `json:"body"`
+	User        Actor      `json:"user"`
+	Assignee    *Actor     `json:"assignee"`
+	Labels      []Label    `json:"labels"`
+	Assignees   []Actor    `json:"assignees"`
+	Milestone   *Milestone `json:"milestone"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	ClosedAt    *time.Time `json:"closed_at"`
+	PullRequest *Dummy     `json:"pull_request"`
 }
 
 // Label - GHA Label structure
@@ -238,3 +238,5 @@ type Team struct {
 	Slug       string `json:"slug"`
 	Permission string `json:"permission"`
 }
+
+type Dummy struct{}

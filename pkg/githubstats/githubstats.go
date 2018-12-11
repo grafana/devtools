@@ -44,6 +44,8 @@ func RegisterProjections(pe projections.StreamProjectionEngine) {
 	NewSplitByEventTypeProjections().Register(pe)
 	NewIssuesActivityProjections().Register(pe)
 	NewPullRequestActivityProjections().Register(pe)
+	NewIssueCommentsActivityProjections().Register(pe)
+	NewPullRequestCommentsActivityProjections().Register(pe)
 	NewEventsActivityProjections().Register(pe)
 	NewReleaseAnnotationProjections().Register(pe)
 	NewCommitActivityProjections().Register(pe)
@@ -52,5 +54,4 @@ func RegisterProjections(pe projections.StreamProjectionEngine) {
 	NewPullRequestAgeProjections().Register(pe)
 	NewPullRequestOpenedToMergedProjections().Register(pe)
 	NewIssuesAgeProjections().Register(pe)
-	NewIssuesOpenClosedActivityProjections().Register(pe)
 }

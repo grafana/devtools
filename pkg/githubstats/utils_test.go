@@ -56,6 +56,12 @@ func TestUtils(t *testing.T) {
 			So(mapUserLoginToGroup("user3"), ShouldEqual, "Contributor")
 		})
 
+		Convey("isBot", func() {
+			So(isBot("CLAassistant"), ShouldBeTrue)
+			So(isBot("codecov-io"), ShouldBeTrue)
+			So(isBot("user"), ShouldBeFalse)
+		})
+
 		Convey("Percentile", func() {
 			values := []float64{43, 54, 56, 61, 62, 66, 68, 69, 69, 70, 71, 72, 77, 78, 79, 85, 87, 88, 89, 93, 95, 96, 98, 99, 99}
 
