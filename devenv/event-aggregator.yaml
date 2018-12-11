@@ -8,3 +8,4 @@ services:
       - '-fromConnectionstring=postgresql://grafana:password@localhost:5432/grafana?sslmode=disable'
       - '-toConnectionString=postgresql://grafana:password@localhost:5432/grafana?sslmode=disable'
       - '-limit=5000'
+      - '-readonlyUser=gh_reader'

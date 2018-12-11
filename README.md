@@ -1,6 +1,6 @@
 # Github repo metrics
 
-A bundle of CLI applications for gathering/extracting data from github 
+A bundle of CLI applications for gathering/extracting data from github
 and turning it into actionable data.
 
 download arch files and serve locally
@@ -16,4 +16,15 @@ Run binaries locally
 docker-compose -f devenv/archive.yaml up
 docker-compose -f devenv/aggreagor.yaml up
 
+```
+
+## Github event aggregation database
+
+**Create read only user:**
+
+```bash
+$ psql -h <hostname> <database> <user>
+> CREATE USER <readonly user> WITH ENCRYPTED PASSWORD '<pwd>';
+> GRANT CONNECT ON DATABASE <database> TO <readonly user>;
+> GRANT USAGE ON SCHEMA public TO <readonly user>;
 ```

@@ -27,11 +27,13 @@ func main() {
 		fromConnectionString string
 		toConnectionString   string
 		limit                int64
+		readonlyUser         string
 	)
 	flag.StringVar(&database, "database", "", "database type")
 	flag.StringVar(&fromConnectionString, "fromConnectionstring", "", "")
 	flag.StringVar(&toConnectionString, "toConnectionstring", "", "")
 	flag.Int64Var(&limit, "limit", 5000, "")
+	flag.StringVar(&readonlyUser, "readonlyUser", "gh_reader", "The readonly database user to grant select permission on generated tables")
 	flag.Parse()
 
 	fromDb, err := sql.Open(database, fromConnectionString)
@@ -55,7 +57,7 @@ func main() {
 	}
 
 	s := streams.New()
-	projectionEngine := projections.New(s, NewPostgresStreamPersister(toDb))
+	projectionEngine := projections.New(s, NewPostgresStreamPersister(toDb, readonlyUser))
 	githubstats.RegisterProjections(projectionEngine)
 
 	events, errors := readEventsFromDb(fromDb, limit)
@@ -168,13 +170,15 @@ func printErrorSummary(errors <-chan error) {
 
 type postgresStreamPersister struct {
 	*projections.StreamPersisterBase
-	db *sql.DB
+	db           *sql.DB
+	readonlyUser string
 }
 
-func NewPostgresStreamPersister(db *sql.DB) projections.StreamPersister {
+func NewPostgresStreamPersister(db *sql.DB, readonlyUser string) projections.StreamPersister {
 	return &postgresStreamPersister{
 		StreamPersisterBase: projections.NewStreamPersisterBase(),
 		db:                  db,
+		readonlyUser:        readonlyUser,
 	}
 }
 
@@ -221,11 +225,30 @@ func (sp *postgresStreamPersister) Register(name string, objTemplate interface{}
 		}
 	}
 
+	err = sp.grantSelectPermissionOnTable(tx, name)
+	if err != nil {
+		log.Println(err)
+		err = tx.Rollback()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		log.Println(err)
 		return
 	}
+}
+
+func (sp *postgresStreamPersister) grantSelectPermissionOnTable(tx *sql.Tx, table string) error {
+	_, err := tx.Exec(fmt.Sprintf(`GRANT SELECT ON %s TO %s`, pq.QuoteIdentifier(table), sp.readonlyUser))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sp *postgresStreamPersister) Persist(name string, stream streams.Readable) {
