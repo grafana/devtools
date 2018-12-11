@@ -8,6 +8,15 @@ import (
 	"github.com/grafana/devtools/pkg/ghevents"
 )
 
+func patchIncorrectRepos(msg interface{}) bool {
+	evt := msg.(*ghevents.Event)
+	if evt.Repo.Name == "grafana/" {
+		evt.Repo.Name = "grafana/grafana"
+	}
+
+	return true
+}
+
 func fromCreatedDate(msg interface{}) time.Time {
 	evt := msg.(*ghevents.Event)
 	return evt.CreatedAt

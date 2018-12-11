@@ -24,20 +24,11 @@ func NewSplitByEventTypeProjections() *SplitByEventTypeProjections {
 	p := &SplitByEventTypeProjections{}
 	p.split = projections.
 		FromStream(GithubEventStream).
-		Filter(p.patchIncorrectRepos).
+		Filter(patchIncorrectRepos).
 		ToStreams(p.toStreams).
 		Build()
 
 	return p
-}
-
-func (p *SplitByEventTypeProjections) patchIncorrectRepos(msg interface{}) bool {
-	evt := msg.(*ghevents.Event)
-	if evt.Repo.Name == "grafana/" {
-		evt.Repo.Name = "grafana/grafana"
-	}
-
-	return true
 }
 
 func (p *SplitByEventTypeProjections) toStreams(state []projections.ProjectionState) map[string][]projections.ProjectionState {
