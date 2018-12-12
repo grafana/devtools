@@ -24,4 +24,5 @@ cmd/github-archive-parser/github-archive-parser
 cmd/github-event-aggregator/github-event-aggregator
 cmd/bots/bots
 devenv/prod-archive.yaml
+devenv/prod-event-aggregator.yaml
 .uptodate

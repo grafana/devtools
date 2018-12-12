@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 #IMAGES=$(make images)
-IMAGES="grafana/devtools-github-archive-parser"
+IMAGES="grafana/devtools-github-archive-parser grafana/devtools-github-event-aggregator"
 IMAGE_TAG=$(git rev-parse HEAD)
 
 push_image() {
