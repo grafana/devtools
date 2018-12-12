@@ -1,6 +1,6 @@
 version: "2"
 services:
-  streams:
+  event-aggregator:
     image: grafana/devtools-github-event-aggregator:latest
     network_mode: host
     command:
