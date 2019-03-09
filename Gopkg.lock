@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:632e5f740de6cafce1c08f659bfa10e75f7e7938dfaeb3d99c82fcbf484484e2"
+  name = "github.com/NYTimes/gziphandler"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "dd0439581c7657cb652dfe5c71d7d48baf39541d"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:bcdefce964ea0419fe4c75e99de77077d55bd778239fcfabcdd8cde53f504332"
   name = "github.com/daniellee/go-github"
   packages = ["github"]
@@ -80,10 +88,9 @@
   revision = "8dffc02ea1cb8398bb73f30424697c60fcf8d4c5"
 
 [[projects]]
-  digest = "1:b6c99ed216a5443cc21477883f0c6da4b91577f17d30fc384e8167b7c60c4b87"
+  digest = "1:bde3e376be8f66cf102496a802bfdac44f75a129338172fdf037d98238051f02"
   name = "github.com/grafana/grafana"
   packages = [
-    "pkg/components/simplejson",
     "pkg/log",
     "pkg/services/sqlstore/migrator",
     "pkg/util",
@@ -270,11 +277,11 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/NYTimes/gziphandler",
     "github.com/daniellee/go-github/github",
     "github.com/go-sql-driver/mysql",
     "github.com/go-xorm/core",
     "github.com/go-xorm/xorm",
-    "github.com/grafana/grafana/pkg/components/simplejson",
     "github.com/grafana/grafana/pkg/services/sqlstore/migrator",
     "github.com/lib/pq",
     "github.com/mailru/easyjson",
