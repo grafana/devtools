@@ -3,16 +3,14 @@ package main
 import (
 	"bytes"
 	"database/sql"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/grafana/devtools/pkg/ghevents"
+	"github.com/grafana/devtools/pkg/archive"
 	"github.com/grafana/devtools/pkg/githubstats"
 	"github.com/grafana/devtools/pkg/streams"
 	"github.com/grafana/devtools/pkg/streams/projections"
@@ -36,16 +34,6 @@ func main() {
 	flag.StringVar(&readonlyUser, "readonlyUser", "gh_reader", "The readonly database user to grant select permission on generated tables")
 	flag.Parse()
 
-	fromDb, err := sql.Open(database, fromConnectionString)
-	if err != nil {
-		log.Fatalln("Failed to connect to archive database", err)
-	}
-	defer fromDb.Close()
-
-	if err = fromDb.Ping(); err != nil {
-		log.Fatalln("Error: Could not establish a connection with the archive database", err)
-	}
-
 	toDb, err := sql.Open(database, toConnectionString)
 	if err != nil {
 		log.Fatalln("Failed to connect to event aggregator database", err)
@@ -60,7 +48,14 @@ func main() {
 	projectionEngine := projections.New(s, NewPostgresStreamPersister(toDb, readonlyUser))
 	githubstats.RegisterProjections(projectionEngine)
 
-	events, errors := readEventsFromDb(fromDb, limit)
+	engine, err := archive.InitDatabase(database, fromConnectionString)
+	if err != nil {
+		log.Fatalf("migration failed. error: %v", err)
+	}
+
+	reader := archive.NewArchiveReader(engine, limit)
+
+	events, errors := reader.ReadAllEvents()
 	go printErrorSummary(errors)
 
 	var wg sync.WaitGroup
@@ -76,90 +71,6 @@ func main() {
 
 	elapsed := time.Since(start)
 	log.Printf("Done. Took %s\n", elapsed)
-}
-
-func readEventsFromDb(db *sql.DB, limit int64) (streams.Readable, <-chan error) {
-	r, w := streams.NewReadableWritable()
-	outErr := make(chan error)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func(db *sql.DB) {
-		totalRows := int64(0)
-		offset := int64(0)
-
-		row := db.QueryRow("SELECT COUNT(id) FROM github_event")
-		if err := row.Scan(&totalRows); err != nil {
-			outErr <- err
-			return
-		}
-
-		totalPages := totalRows / limit
-		readEvents := int64(0)
-
-		log.Println("Reading events...", "total rows", totalRows, "total pages", totalPages)
-
-		for n := int64(0); n <= totalPages; n++ {
-			if n > 0 {
-				offset = n * limit
-			}
-			rows, err := db.Query("SELECT id, created_at, data FROM github_event ORDER BY id ASC LIMIT $1 OFFSET $2", limit, offset)
-			if err != nil {
-				outErr <- err
-				return
-			}
-
-			defer rows.Close()
-
-			if !rows.NextResultSet() {
-				break
-			}
-
-			for rows.Next() {
-				var (
-					id        int64
-					createdAt time.Time
-					data      string
-				)
-				if err := rows.Scan(&id, &createdAt, &data); err != nil {
-					outErr <- err
-					continue
-				}
-
-				reader := strings.NewReader(data)
-				d := json.NewDecoder(reader)
-				for {
-					var evt ghevents.Event
-					err := d.Decode(&evt)
-					if err == io.EOF {
-						break
-					} else if err != nil {
-						outErr <- err
-						break
-					}
-
-					w <- &evt
-					readEvents++
-				}
-			}
-
-			if err := rows.Err(); err != nil {
-				outErr <- err
-			}
-		}
-
-		log.Println("Reading events DONE", "read events", readEvents)
-		wg.Done()
-	}(db)
-
-	go func() {
-		wg.Wait()
-		close(w)
-		close(outErr)
-	}()
-
-	return r, outErr
 }
 
 func printErrorSummary(errors <-chan error) {
