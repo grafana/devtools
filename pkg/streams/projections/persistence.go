@@ -51,6 +51,10 @@ func (ps *PersistedStream) GetColumnNames() []string {
 
 func (ps *PersistedStream) GetColumnValues(obj interface{}) []interface{} {
 	columnValues := []interface{}{}
+	if obj == nil {
+		return columnValues
+	}
+
 	v := reflect.ValueOf(obj).Elem()
 	for _, c := range ps.Columns {
 		fv := v.FieldByName(c.OriginalFieldName).Interface()
