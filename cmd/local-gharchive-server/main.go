@@ -20,15 +20,21 @@ import (
 func main() {
 	var (
 		srcPath string
+		port    string
 	)
 
 	flag.StringVar(&srcPath, "path", "", "local path on disk where github archive events are located")
+	flag.StringVar(&port, "port", "8000", "port to serve arhive files from")
 	flag.Parse()
 
 	withoutGz := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fileName := strings.TrimSuffix(r.URL.Path, ".gz")
+		if fileName == "/" {
+			w.WriteHeader(200)
+			return
+		}
 		fullPath := path.Join(srcPath, fileName)
-		fmt.Println("serving file", "path", fullPath)
+		log.Println("serving file", "path", fullPath)
 
 		r.URL, _ = url.Parse(fileName)
 		w.Header().Add("Content-Type", "application/gzip")
@@ -70,5 +76,5 @@ func main() {
 	withGz := gziphandler.GzipHandler(withoutGz)
 
 	http.Handle("/", withGz)
-	http.ListenAndServe("0.0.0.0:8000", nil)
+	http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", port), nil)
 }

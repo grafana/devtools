@@ -23,6 +23,7 @@ log.log
 cmd/github-archive-parser/github-archive-parser
 cmd/github-event-aggregator/github-event-aggregator
 cmd/bots/bots
+cmd/local-gharchive-server/local-gharchive-server
 devenv/prod-archive.yaml
 devenv/prod-event-aggregator.yaml
 .uptodate
