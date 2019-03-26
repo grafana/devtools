@@ -17,11 +17,11 @@ type StreamProjectionEngine interface {
 
 type streamProjectionEngine struct {
 	streamingEngine streams.Engine
-	persister       StreamPersister
+	persister       streams.StreamPersister
 	projections     map[string]Projection
 }
 
-func New(streamingEngine streams.Engine, persister StreamPersister) StreamProjectionEngine {
+func New(streamingEngine streams.Engine, persister streams.StreamPersister) StreamProjectionEngine {
 	return &streamProjectionEngine{
 		streamingEngine: streamingEngine,
 		persister:       persister,
