@@ -48,6 +48,7 @@ func (e *streamProjectionEngine) Register(streamProjection *StreamProjection) {
 		}
 		e.persister.Register(streamProjection.PersistTo, streamProjection.PersistObject)
 		e.streamingEngine.Subscribe([]string{topic}, func(p streams.Publisher, stream streams.Readable) {
+			log.Println("Persisting projection", "name", streamProjection.PersistTo)
 			e.persister.Persist(streamProjection.PersistTo, stream)
 		})
 	}
