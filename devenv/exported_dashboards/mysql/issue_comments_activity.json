@@ -1,0 +1,412 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_GITHUB_STATS",
+      "label": "github_stats",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "mysql",
+      "pluginName": "MySQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "6.1.0-pre"
+    },
+    {
+      "type": "panel",
+      "id": "graph",
+      "name": "Graph",
+      "version": ""
+    },
+    {
+      "type": "datasource",
+      "id": "mysql",
+      "name": "MySQL",
+      "version": "1.0.0"
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": false,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "limit": 100,
+        "name": "Annotations & Alerts",
+        "showIn": 0,
+        "type": "dashboard"
+      },
+      {
+        "datasource": "${DS_GITHUB_STATS}",
+        "enable": false,
+        "hide": false,
+        "iconColor": "#64b0c8",
+        "limit": 100,
+        "name": "Releases",
+        "rawQuery": "SELECT\n  time,\n  title AS text,\n  tags\nFROM\n  release_annotation\nWHERE\n  $__unixEpochFilter(time) AND\n  repo = 'grafana/grafana' AND\n  prerelease = false\n",
+        "showIn": 0,
+        "tags": [],
+        "type": "tags"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "iteration": 1553446575675,
+  "links": [],
+  "panels": [
+    {
+      "aliasColors": {
+        "Issues Closed": "#eab839",
+        "Issues Opened": "#629e51",
+        "Issues Opened Year over year": "#bf1b00",
+        "Merged": "#6f42c1",
+        "Proposed": "#28a745"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "${DS_GITHUB_STATS}",
+      "decimals": 2,
+      "fill": 1,
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": null,
+        "sortDesc": null,
+        "total": true,
+        "values": true
+      },
+      "lines": false,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "paceLength": 10,
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "expr": "",
+          "format": "time_series",
+          "group": [],
+          "intervalFactor": 1,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  time,\n  sum(count) AS \"Comments\"\nFROM\n  issue_comments_activity\nWHERE\n  $__unixEpochFilter(time) AND\n  period = '${period}' AND\n  repo IN(${repo}) AND\n  authored_by IN(${authored_by})\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Issue Comments Activity ($period)",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "Issues Closed": "#eab839",
+        "Issues Opened": "#629e51",
+        "Issues Opened Year over year": "#bf1b00"
+      },
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "${DS_GITHUB_STATS}",
+      "decimals": 2,
+      "fill": 1,
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 4,
+      "legend": {
+        "alignAsTable": true,
+        "avg": true,
+        "current": true,
+        "max": true,
+        "min": true,
+        "show": true,
+        "sort": null,
+        "sortDesc": null,
+        "total": true,
+        "values": true
+      },
+      "lines": false,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "paceLength": 10,
+      "percentage": false,
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": true,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "expr": "",
+          "format": "time_series",
+          "group": [],
+          "intervalFactor": 1,
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  time,\n  authored_by,\n  sum(count)\nFROM\n  issue_comments_activity\nWHERE\n  $__unixEpochFilter(time) AND\n  period = '${period}' AND\n  repo IN(${repo})\nGROUP BY 1,2\nORDER BY 1,2",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Authored Issue Comments / Group ($period)",
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "decimals": null,
+          "format": "short",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": "0",
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    }
+  ],
+  "refresh": false,
+  "schemaVersion": 18,
+  "style": "dark",
+  "tags": [
+    "github-stats"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "${DS_GITHUB_STATS}",
+        "definition": "SELECT t.__value, t.__text FROM (   SELECT DISTINCT      period as __value,     case period        when 'h24' then '24 hours moving average'        when 'd' then 'Daily'       when 'd7' then '7 days moving average'       when 'w' then 'Weekly'       when 'm' then 'Monthly'       when 'q' then 'Quarterly'       when 'y' then 'Yearly'     end as __text,      case period        when 'h24' then 1       when 'd' then 2       when 'd7' then 3       when 'w' then 4       when 'm' then 5       when 'q' then 6       when 'y' then 7     end as ordering   FROM      issue_comments_activity    ) as t   ORDER BY t.ordering",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Period",
+        "multi": false,
+        "name": "period",
+        "options": [],
+        "query": "SELECT t.__value, t.__text FROM (   SELECT DISTINCT      period as __value,     case period        when 'h24' then '24 hours moving average'        when 'd' then 'Daily'       when 'd7' then '7 days moving average'       when 'w' then 'Weekly'       when 'm' then 'Monthly'       when 'q' then 'Quarterly'       when 'y' then 'Yearly'     end as __text,      case period        when 'h24' then 1       when 'd' then 2       when 'd7' then 3       when 'w' then 4       when 'm' then 5       when 'q' then 6       when 'y' then 7     end as ordering   FROM      issue_comments_activity    ) as t   ORDER BY t.ordering",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "${DS_GITHUB_STATS}",
+        "definition": "SELECT DISTINCT repo FROM issue_comments_activity",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Repository",
+        "multi": true,
+        "name": "repo",
+        "options": [],
+        "query": "SELECT DISTINCT repo FROM issue_comments_activity",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": "${DS_GITHUB_STATS}",
+        "definition": "SELECT DISTINCT authored_by FROM issue_comments_activity",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Authored By",
+        "multi": true,
+        "name": "authored_by",
+        "options": [],
+        "query": "SELECT DISTINCT authored_by FROM issue_comments_activity",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "2014-12-31T23:00:00.000Z",
+    "to": "now/w-1w"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ]
+  },
+  "timezone": "",
+  "title": "Issue Comments Activity",
+  "uid": "ZsuaQoEik",
+  "version": 2
+}
