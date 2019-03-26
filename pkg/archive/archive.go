@@ -1,13 +1,10 @@
 package archive
 
 import (
-	"bufio"
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"runtime"
@@ -169,83 +166,41 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		return nil
 	}
 
-	//create reader that can reader gziped contetn
+	//create reader that can read gziped content
 	zipReader, err := gzip.NewReader(res.Body)
 	if err != nil {
 		return errors.Wrap(err, "parsing compress content")
 	}
 
-	//read all zipped data into memory.
-	byteArray, err := ioutil.ReadAll(zipReader)
-	if err != nil {
-		return err
-	}
-
 	defer zipReader.Close()
 	defer res.Body.Close()
 
-	inMemReader := bytes.NewReader(byteArray)
-
-	// decompress response body and send to workers.
-	bufferReader := bufio.NewReaderSize(inMemReader, 2048*2048)
-
-	var lastError error
-	var s string
+	jsonDecoder := json.NewDecoder(zipReader)
 	for {
-		line, isPrefix, err := bufferReader.ReadLine()
-		s = ""
-		for err == nil {
-			if isPrefix {
-				s += string(line)
-			} else {
-				s = string(line)
-			}
-
-			if !isPrefix {
-				err := ad.parseAndFilterEvent(file, s)
-				if err != nil {
-					lastError = err
-				}
-			}
-
-			line, isPrefix, err = bufferReader.ReadLine()
-		}
-
-		if err != io.EOF {
-			log.Printf("failed to read line. createdAt: %v error:%v\n", file.CreatedAt, err)
-			break
-		}
-
+		var ge common.GithubEventJSON
+		err := jsonDecoder.Decode(&ge)
 		if err == io.EOF {
 			break
-		}
-	}
-
-	//only mark the file as downloaded if all lines are parsed.
-	if lastError == nil {
-		err = ad.saveFileIntoDatabase(file)
-		if err != nil {
+		} else if err != nil {
 			return err
 		}
-	}
 
-	return lastError
-}
-
-func (ad *ArchiveDownloader) parseAndFilterEvent(file *common.ArchiveFile, line string) error {
-	ge := common.GithubEventJSON{}
-	err := json.Unmarshal([]byte(line), &ge)
-	if err != nil {
-		log.Printf("failed to parse json. createdAt: %v err %+v\n", file.CreatedAt, err)
-		return err
-	}
-
-	for _, v := range ad.orgNames {
-		if ge.Org != nil && ge.Org.Login == v {
-			id, _ := strconv.ParseInt(ge.ID, 10, 0)
-			ad.saveEventIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: string(line)})
-			eventCount++
+		for _, v := range ad.orgNames {
+			if ge.Org != nil && ge.Org.Login == v {
+				id, _ := strconv.ParseInt(ge.ID, 10, 0)
+				data, err := json.Marshal(&ge)
+				if err != nil {
+					return err
+				}
+				ad.saveEventIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: string(data)})
+				eventCount++
+			}
 		}
+	}
+
+	err = ad.saveFileIntoDatabase(file)
+	if err != nil {
+		return err
 	}
 
 	return nil

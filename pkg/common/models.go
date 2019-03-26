@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -28,9 +29,14 @@ type GithubEvent struct {
 
 // GithubEventJSON is the root json model of an event
 type GithubEventJSON struct {
-	ID        string    `json:"id"`
-	Org       *OrgJSON  `json:"org"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        string          `json:"id"`
+	Type      string          `json:"type"`
+	Public    bool            `json:"public"`
+	CreatedAt time.Time       `json:"created_at"`
+	Actor     json.RawMessage `json:"actor"`
+	Repo      json.RawMessage `json:"repo"`
+	Org       *OrgJSON        `json:"org"`
+	Payload   json.RawMessage `json:"payload"`
 }
 
 // OrgJSON is the json model from archive events
