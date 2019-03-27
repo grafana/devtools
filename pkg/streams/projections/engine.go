@@ -17,11 +17,11 @@ type StreamProjectionEngine interface {
 
 type streamProjectionEngine struct {
 	streamingEngine streams.Engine
-	persister       StreamPersister
+	persister       streams.StreamPersister
 	projections     map[string]Projection
 }
 
-func New(streamingEngine streams.Engine, persister StreamPersister) StreamProjectionEngine {
+func New(streamingEngine streams.Engine, persister streams.StreamPersister) StreamProjectionEngine {
 	return &streamProjectionEngine{
 		streamingEngine: streamingEngine,
 		persister:       persister,
@@ -48,6 +48,7 @@ func (e *streamProjectionEngine) Register(streamProjection *StreamProjection) {
 		}
 		e.persister.Register(streamProjection.PersistTo, streamProjection.PersistObject)
 		e.streamingEngine.Subscribe([]string{topic}, func(p streams.Publisher, stream streams.Readable) {
+			log.Println("Persisting projection", "name", streamProjection.PersistTo)
 			e.persister.Persist(streamProjection.PersistTo, stream)
 		})
 	}
