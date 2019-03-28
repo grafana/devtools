@@ -3,18 +3,19 @@ package memorybus
 import "github.com/grafana/devtools/pkg/streams"
 
 type StreamSubscription struct {
-	Topics      []string
-	Ready       chan bool
-	Streams     streams.ReadableCollection
-	SubscribeFn streams.SubscribeFunc
+	Topics           []string
+	Ready            chan bool
+	SubscribeFn      streams.SubscribeFunc
+	PublishedStreams chan streams.Readable
+	ReadyStreams     int
 }
 
 func NewStreamSubscription(topics []string, subscribeFn streams.SubscribeFunc) *StreamSubscription {
 	return &StreamSubscription{
-		Topics:      topics,
-		Ready:       make(chan bool),
-		Streams:     streams.ReadableCollection{},
-		SubscribeFn: subscribeFn,
+		Topics:           topics,
+		Ready:            make(chan bool),
+		SubscribeFn:      subscribeFn,
+		PublishedStreams: make(chan streams.Readable),
 	}
 }
 
@@ -29,14 +30,16 @@ func (ss *StreamSubscription) hasTopic(topic string) bool {
 }
 
 func (ss *StreamSubscription) addReadyStream(stream streams.Readable) {
-	ss.Streams = append(ss.Streams, stream)
-	ss.tryMarkAsReady()
-}
-
-func (ss *StreamSubscription) tryMarkAsReady() {
-	if len(ss.Streams) == len(ss.Topics) {
+	ss.ReadyStreams++
+	if ss.ReadyStreams == 1 {
 		ss.Ready <- true
 		close(ss.Ready)
+	}
+
+	ss.PublishedStreams <- stream
+
+	if ss.ReadyStreams == len(ss.Topics) {
+		close(ss.PublishedStreams)
 	}
 }
 
