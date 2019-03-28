@@ -64,10 +64,30 @@ func (bus *InMemoryBus) Start() <-chan bool {
 
 	for _, cs := range bus.Subscriptions {
 		go func(cs *StreamSubscription) {
-			defer wg.Done()
 			<-cs.Ready
-			combinedStream := cs.Streams.Combine()
-			cs.SubscribeFn(bus, combinedStream)
+			in, out := streams.New()
+
+			go func() {
+				cs.SubscribeFn(bus, in)
+				wg.Done()
+			}()
+
+			var wg2 sync.WaitGroup
+			wg2.Add(len(cs.Topics))
+
+			go func() {
+				for publishedStream := range cs.PublishedStreams {
+					go func(publishedStream streams.Readable) {
+						for msg := range publishedStream {
+							out <- msg
+						}
+						wg2.Done()
+					}(publishedStream)
+				}
+			}()
+
+			wg2.Wait()
+			close(out)
 		}(cs)
 	}
 
