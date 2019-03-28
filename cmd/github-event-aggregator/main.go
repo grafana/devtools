@@ -2,9 +2,13 @@ package main
 
 import (
 	"flag"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/inconshreveable/log15"
+
+	"github.com/grafana/devtools/pkg/log15adapter"
 	"github.com/grafana/devtools/pkg/streams/sqlpersistence"
 
 	"github.com/grafana/devtools/pkg/archive"
@@ -36,11 +40,16 @@ func main() {
 	flag.Parse()
 
 	logger := log.New()
-	logLevel := log.LogLevelInfo
+
+	logLevel := log15.LvlInfo
 	if verboseLogging {
-		logLevel = log.LogLevelDebug
+		logLevel = log15.LvlDebug
 	}
-	logger.AddHandler(log.NewStdOutHandler(logLevel))
+
+	log15Logger := log15.New()
+	log15Logger.SetHandler(log15.LvlFilterHandler(
+		logLevel, log15.StreamHandler(os.Stdout, log15adapter.GetConsoleFormat())))
+	logger.AddHandler(log15adapter.New(log15Logger))
 
 	streamPersister, err := sqlpersistence.Open(logger, database, toConnectionString)
 	if err != nil {

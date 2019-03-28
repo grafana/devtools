@@ -60,3 +60,11 @@
 [[constraint]]
   name = "github.com/smartystreets/goconvey"
   version = "1.6.3"
+
+[[constraint]]
+  name = "github.com/inconshreveable/log15"
+  version = "2.13"
+
+[[constraint]]
+  name = "github.com/mattn/go-isatty"
+  version = "0.0.3"

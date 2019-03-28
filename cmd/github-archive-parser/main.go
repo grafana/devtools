@@ -2,13 +2,16 @@ package main
 
 import (
 	"flag"
+	"os"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grafana/devtools/pkg/archive"
+	"github.com/grafana/devtools/pkg/log15adapter"
 	"github.com/grafana/devtools/pkg/streams/log"
 	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
+	"github.com/inconshreveable/log15"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -45,11 +48,16 @@ func main() {
 	flag.Parse()
 
 	logger := log.New()
-	logLevel := log.LogLevelInfo
+
+	logLevel := log15.LvlInfo
 	if verboseLogging {
-		logLevel = log.LogLevelDebug
+		logLevel = log15.LvlDebug
 	}
-	logger.AddHandler(log.NewStdOutHandler(logLevel))
+
+	log15Logger := log15.New()
+	log15Logger.SetHandler(log15.LvlFilterHandler(
+		logLevel, log15.StreamHandler(os.Stdout, log15adapter.GetConsoleFormat())))
+	logger.AddHandler(log15adapter.New(log15Logger))
 
 	startDate, err := time.Parse(simpleDateFormat, startDateFlag)
 	if err != nil {
