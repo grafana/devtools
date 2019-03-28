@@ -2,13 +2,16 @@ package main
 
 import (
 	"flag"
-	"log"
+	"os"
 	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grafana/devtools/pkg/archive"
+	"github.com/grafana/devtools/pkg/log15adapter"
+	"github.com/grafana/devtools/pkg/streams/log"
 	_ "github.com/grafana/grafana/pkg/services/sqlstore/migrator"
+	"github.com/inconshreveable/log15"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -18,6 +21,8 @@ var (
 )
 
 func main() {
+	start := time.Now()
+
 	var (
 		database         string
 		connectionString string
@@ -28,6 +33,7 @@ func main() {
 		orgNames         []string
 		maxDuration      time.Duration
 		overrideAllFiles bool
+		verboseLogging   bool
 	)
 
 	flag.StringVar(&database, "database", "", "database type")
@@ -38,11 +44,24 @@ func main() {
 	flag.StringVar(&orgNamesFlag, "orgNames", "grafana", "comma sepearted list of orgs to download all events for")
 	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "")
 	flag.BoolVar(&overrideAllFiles, "overrideAllFiles", false, "overrides all files instead of just those missing")
+	flag.BoolVar(&verboseLogging, "verbose", false, "enable verbose logging")
 	flag.Parse()
+
+	logger := log.New()
+
+	logLevel := log15.LvlInfo
+	if verboseLogging {
+		logLevel = log15.LvlDebug
+	}
+
+	log15Logger := log15.New()
+	log15Logger.SetHandler(log15.LvlFilterHandler(
+		logLevel, log15.StreamHandler(os.Stdout, log15adapter.GetConsoleFormat())))
+	logger.AddHandler(log15adapter.New(log15Logger))
 
 	startDate, err := time.Parse(simpleDateFormat, startDateFlag)
 	if err != nil {
-		log.Fatalf("could not parse start date. error: %v", err)
+		logger.Fatal("could not parse start date", "error", err)
 	}
 
 	var stopDate time.Time
@@ -51,18 +70,20 @@ func main() {
 	} else {
 		stopDate, err = time.Parse(simpleDateFormat, stopDateFlag)
 		if err != nil {
-			log.Fatalf("could not parse stop date. error: %v", err)
+			logger.Fatal("could not parse stop date", "error", err)
 		}
 	}
 
 	orgNames = strings.Split(orgNamesFlag, ",")
 	engine, err := archive.InitDatabase(database, connectionString)
 	if err != nil {
-		log.Fatalf("migration failed. error: %v", err)
+		logger.Fatal("migration failed", "error", err)
 	}
 
 	doneChan := make(chan time.Time)
 	ad := archive.NewArchiveDownloader(engine, overrideAllFiles, archiveUrl, orgNames, startDate, stopDate, doneChan)
+	ad.SetLogger(logger)
+
 	go func() {
 		<-time.After(maxDuration)
 		close(doneChan)
@@ -70,6 +91,8 @@ func main() {
 
 	err = ad.DownloadEvents()
 	if err != nil {
-		log.Fatalf("failed to download archive files. error: %v", err)
+		logger.Fatal("failed to download archive files", "error", err)
 	}
+
+	logger.Info("done", "took", time.Since(start))
 }

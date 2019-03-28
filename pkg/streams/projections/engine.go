@@ -1,10 +1,11 @@
 package projections
 
 import (
-	"log"
 	"strings"
+	"time"
 
 	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/log"
 )
 
 type FilterFunc func(msg interface{}) bool
@@ -12,10 +13,12 @@ type ReduceFunc func(accumulator interface{}, currentValue interface{}) interfac
 type SplitToStreamsFunc func(s []ProjectionState) map[string][]ProjectionState
 
 type StreamProjectionEngine interface {
+	SetLogger(logger log.Logger)
 	Register(streamProjection *StreamProjection)
 }
 
 type streamProjectionEngine struct {
+	logger      log.Logger
 	bus         streams.Bus
 	persister   streams.StreamPersister
 	projections map[string]Projection
@@ -23,13 +26,20 @@ type streamProjectionEngine struct {
 
 func New(bus streams.Bus, persister streams.StreamPersister) StreamProjectionEngine {
 	return &streamProjectionEngine{
+		logger:      log.New(),
 		bus:         bus,
 		persister:   persister,
 		projections: map[string]Projection{},
 	}
 }
 
+func (e *streamProjectionEngine) SetLogger(logger log.Logger) {
+	e.logger = logger.New("logger", "stream-projections")
+}
+
 func (e *streamProjectionEngine) Register(streamProjection *StreamProjection) {
+	e.logger.Debug("registering stream...", "fromStreams", strings.Join(streamProjection.FromStreams, ","))
+
 	if streamProjection.PersistTo != "" {
 		topic := "persist_to_" + streamProjection.PersistTo
 		if streamProjection.ToStreams != nil {
@@ -48,11 +58,15 @@ func (e *streamProjectionEngine) Register(streamProjection *StreamProjection) {
 		}
 		e.persister.Register(streamProjection.PersistTo, streamProjection.PersistObject)
 		e.bus.Subscribe([]string{topic}, func(p streams.Publisher, stream streams.Readable) {
-			log.Println("Persisting projection", "name", streamProjection.PersistTo)
-			e.persister.Persist(streamProjection.PersistTo, stream)
+			e.logger.Debug("persisting projection stream", "name", streamProjection.PersistTo)
+			if err := e.persister.Persist(streamProjection.PersistTo, stream); err != nil {
+				e.logger.Error("failed to persist projection stream", "error", err)
+			}
+
+			e.logger.Debug("projection stream persisted", "name", streamProjection.PersistTo)
 		})
 	}
-	e.bus.Subscribe(streamProjection.createSubscriber())
+	e.bus.Subscribe(streamProjection.createSubscriber(e.logger))
 }
 
 func FromStream(name string) *StreamProjectionBuilder {
@@ -73,12 +87,13 @@ type StreamProjection struct {
 	PersistObject interface{}
 }
 
-func (sp *StreamProjection) createSubscriber() ([]string, streams.SubscribeFunc) {
+func (sp *StreamProjection) createSubscriber(logger log.Logger) ([]string, streams.SubscribeFunc) {
 	subscribeFn := func(publisher streams.Publisher, stream streams.Readable) {
 		fromStreams := strings.Join(sp.FromStreams, ", ")
-		log.Println("Running projection...", "fromStreams", fromStreams)
+		start := time.Now()
+		logger.Debug("running stream projection...", "fromStreams", fromStreams)
 		state := sp.Projection.Run(stream)
-		log.Println("Projection done", "fromStreams", fromStreams)
+		logger.Debug("stream projection done", "fromStreams", fromStreams, "took", time.Since(start))
 
 		if sp.ToStreams != nil {
 			outputStreams := sp.ToStreams(state)
@@ -86,7 +101,7 @@ func (sp *StreamProjection) createSubscriber() ([]string, streams.SubscribeFunc)
 			for topic, items := range outputStreams {
 				go func(topic string, items []ProjectionState) {
 					out := make(chan streams.T, 1)
-					log.Println("Publishing projection state...", "topic", topic, "fromStreams", fromStreams)
+					logger.Debug("publishing stream projection state...", "topic", topic, "fromStreams", fromStreams)
 					publisher.Publish(topic, out)
 
 					msgCount := int64(0)
@@ -95,7 +110,7 @@ func (sp *StreamProjection) createSubscriber() ([]string, streams.SubscribeFunc)
 						out <- item
 					}
 
-					log.Println("Published projection result", "topic", topic, "fromStreams", fromStreams, "messages", msgCount)
+					logger.Debug("stream projection state published", "topic", topic, "fromStreams", fromStreams, "messages", msgCount)
 
 					close(out)
 				}(topic, items)
