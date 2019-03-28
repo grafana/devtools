@@ -2,13 +2,16 @@ package memorybus
 
 import (
 	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/log"
 )
 
 type InMemoryBus struct {
-	streams.Bus
+	logger         log.Logger
 	Subscriptions  StreamSubscriptionCollection
 	subscriptionMu sync.RWMutex
 	started        bool
@@ -16,8 +19,13 @@ type InMemoryBus struct {
 
 func New() *InMemoryBus {
 	return &InMemoryBus{
+		logger:        log.New(),
 		Subscriptions: StreamSubscriptionCollection{},
 	}
+}
+
+func (bus *InMemoryBus) SetLogger(logger log.Logger) {
+	bus.logger = logger.New("logger", "memory-bus")
 }
 
 func (bus *InMemoryBus) Subscribe(topics []string, fn streams.SubscribeFunc) error {
@@ -29,6 +37,8 @@ func (bus *InMemoryBus) Subscribe(topics []string, fn streams.SubscribeFunc) err
 	bus.Subscriptions = append(bus.Subscriptions, NewStreamSubscription(topics, fn))
 	bus.subscriptionMu.Unlock()
 
+	bus.logger.Debug("subscription added", "topics", strings.Join(topics, ","))
+
 	return nil
 }
 
@@ -38,6 +48,7 @@ func (bus *InMemoryBus) Publish(topic string, stream streams.Readable) error {
 	subscriptionCount := bus.Subscriptions.countByTopic(topic)
 
 	if subscriptionCount == 0 {
+		bus.logger.Debug("no subscribers for published topic, draining messages in stream", "topic", topic)
 		go func() {
 			stream.Drain()
 		}()
@@ -65,10 +76,13 @@ func (bus *InMemoryBus) Start() <-chan bool {
 	for _, cs := range bus.Subscriptions {
 		go func(cs *StreamSubscription) {
 			<-cs.Ready
+			start := time.Now()
+			bus.logger.Debug("starting to publish messages to subscriber...", "topics", strings.Join(cs.Topics, ","))
 			in, out := streams.New()
 
 			go func() {
 				cs.SubscribeFn(bus, in)
+				bus.logger.Debug("sending of messages to subscriber done", "topics", strings.Join(cs.Topics, ","), "took", time.Since(start))
 				wg.Done()
 			}()
 

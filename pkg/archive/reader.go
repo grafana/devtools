@@ -3,26 +3,29 @@ package archive
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/grafana/devtools/pkg/common"
 
 	"github.com/go-xorm/xorm"
 	"github.com/grafana/devtools/pkg/ghevents"
 	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/log"
 )
 
 // ArchiveReader reads all events stored in archive database
 type ArchiveReader struct {
+	logger    log.Logger
 	engine    *xorm.Engine
 	batchSize int64
 }
 
 // NewArchiveReader creates a new reader
-func NewArchiveReader(engine *xorm.Engine, batchSize int64) *ArchiveReader {
+func NewArchiveReader(logger log.Logger, engine *xorm.Engine, batchSize int64) *ArchiveReader {
 	return &ArchiveReader{
+		logger:    logger.New("logger", "archive-reader"),
 		engine:    engine,
 		batchSize: batchSize,
 	}
@@ -50,19 +53,27 @@ func (ar *ArchiveReader) ReadAllEvents() (streams.Readable, <-chan error) {
 		totalPages := totalRows / ar.batchSize
 		readEvents := int64(0)
 
-		log.Println("Reading events...", "total rows", totalRows, "total pages", totalPages)
+		start := time.Now()
+		ar.logger.Info("reading events from archive database...", "totalEvents", totalRows, "totalPages", totalPages)
 
 		for n := int64(0); n <= totalPages; n++ {
 			if n > 0 {
 				offset = n * ar.batchSize
 			}
 
+			startBatch := time.Now()
+			ar.logger.Debug("reading batch of events from archive database...", "batchSize", ar.batchSize, "offset", offset)
 			var rawEvents []*common.GithubEvent
 			err := ar.engine.OrderBy("id").Limit(int(ar.batchSize), int(offset)).Find(&rawEvents)
 			if err != nil {
 				outErr <- err
 				return
 			}
+
+			ar.logger.Debug("batch of events read from archive database", "batchSize", ar.batchSize, "offset", offset, "eventCount", len(rawEvents), "took", time.Since(startBatch))
+
+			startDecode := time.Now()
+			ar.logger.Debug("deserializing json of event batch...")
 
 			for _, rawEvent := range rawEvents {
 				reader := strings.NewReader(rawEvent.Data)
@@ -81,9 +92,11 @@ func (ar *ArchiveReader) ReadAllEvents() (streams.Readable, <-chan error) {
 					readEvents++
 				}
 			}
+
+			ar.logger.Debug("json of event batch deserialized", "took", time.Since(startDecode))
 		}
 
-		log.Println("Reading events DONE", "read events", readEvents)
+		ar.logger.Info("events read from archive database", "readEvents", readEvents, "took", time.Since(start))
 	}()
 
 	go func() {

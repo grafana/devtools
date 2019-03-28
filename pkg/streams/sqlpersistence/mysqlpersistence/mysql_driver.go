@@ -6,17 +6,42 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-sql-driver/mysql"
+
 	// make sure to load mysql driver
-	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/log"
 	"github.com/grafana/devtools/pkg/streams/sqlpersistence"
 )
 
 func init() {
-	sqlpersistence.Register("mysql", &mySqlDriver{})
+	sqlpersistence.Register("mysql", new())
+}
+
+type mySqlLogger struct {
+	logger log.Logger
+}
+
+func (l *mySqlLogger) Print(v ...interface{}) {
+	l.logger.Error("critical error", v...)
 }
 
 type mySqlDriver struct {
+	logger log.Logger
+}
+
+func new() *mySqlDriver {
+	return &mySqlDriver{
+		logger: log.New(),
+	}
+}
+
+func (sp *mySqlDriver) Init(logger log.Logger) error {
+	loggerInstance := logger.New("logger", "mysql-persistence")
+	sp.logger = loggerInstance
+	mysql.SetLogger(&mySqlLogger{logger: loggerInstance})
+	return nil
 }
 
 func (sp *mySqlDriver) DropTableIfExists(tx *sql.Tx, t *sqlpersistence.Table) error {
@@ -52,7 +77,7 @@ func (sp *mySqlDriver) CreateTableIfNotExists(tx *sql.Tx, t *sqlpersistence.Tabl
 	return nil
 }
 
-func (sp *mySqlDriver) PersistStream(tx *sql.Tx, t *sqlpersistence.Table, stream streams.Readable) error {
+func (sp *mySqlDriver) PersistStream(tx *sql.Tx, t *sqlpersistence.Table, stream streams.Readable) (int64, error) {
 	buf := &bytes.Buffer{}
 	buf.WriteString("INSERT INTO ")
 	buf.WriteString(t.TableName)
@@ -70,6 +95,7 @@ func (sp *mySqlDriver) PersistStream(tx *sql.Tx, t *sqlpersistence.Table, stream
 	preparedSQLStr := "(" + strings.Join(preparedArgs, ",") + ")"
 	sql := ""
 	processedRows := int64(0)
+	rowsAffected := int64(0)
 
 	for msg := range stream {
 		colValues := t.GetColumnValues(msg)
@@ -84,21 +110,22 @@ func (sp *mySqlDriver) PersistStream(tx *sql.Tx, t *sqlpersistence.Table, stream
 
 		sql += preparedSQLStr
 		processedRows++
+		rowsAffected++
 
 		if processedRows > 999 {
 			stmt, err := tx.Prepare(initialSQL + sql)
 			if err != nil {
-				return err
+				return 0, err
 			}
 
 			_, err = stmt.Exec(values...)
 			if err != nil {
-				return err
+				return 0, err
 			}
 
 			err = stmt.Close()
 			if err != nil {
-				return err
+				return 0, err
 			}
 
 			processedRows = 0
@@ -108,23 +135,23 @@ func (sp *mySqlDriver) PersistStream(tx *sql.Tx, t *sqlpersistence.Table, stream
 	}
 
 	if len(values) == 0 {
-		return nil
+		return rowsAffected, nil
 	}
 
 	stmt, err := tx.Prepare(initialSQL + sql)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	_, err = stmt.Exec(values...)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	err = stmt.Close()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return rowsAffected, nil
 }

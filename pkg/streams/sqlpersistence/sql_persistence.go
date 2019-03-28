@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/log"
 )
 
 var (
@@ -18,9 +19,10 @@ var (
 )
 
 type Driver interface {
+	Init(logger log.Logger) error
 	DropTableIfExists(tx *sql.Tx, persistedStream *Table) error
 	CreateTableIfNotExists(tx *sql.Tx, persistedStream *Table) error
-	PersistStream(tx *sql.Tx, persistedStream *Table, stream streams.Readable) error
+	PersistStream(tx *sql.Tx, persistedStream *Table, stream streams.Readable) (int64, error)
 }
 
 // Register makes a sql stream persister driver available by the provided name.
@@ -30,10 +32,10 @@ func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
 	if driver == nil {
-		panic("sqlpersistence: Register driver is nil")
+		panic("Register driver is nil")
 	}
 	if _, dup := drivers[name]; dup {
-		panic("sqlpersistence: Register called twice for driver " + name)
+		panic("Register called twice for driver " + name)
 	}
 	drivers[name] = driver
 }
@@ -59,17 +61,23 @@ func Drivers() []string {
 type SQLStreamPersister struct {
 	streams.StreamPersister
 	Driver             Driver
+	logger             log.Logger
 	db                 *sql.DB
 	registeredTablesMu sync.RWMutex
 	registeredTables   map[string]*Table
 }
 
-func Open(driverName, connectionString string) (*SQLStreamPersister, error) {
+func Open(logger log.Logger, driverName, connectionString string) (*SQLStreamPersister, error) {
 	driversMu.RLock()
 	driveri, ok := drivers[driverName]
 	driversMu.RUnlock()
 	if !ok {
-		return nil, fmt.Errorf("sqlpersistence: unknown driver %q (forgotten import?)", driverName)
+		return nil, fmt.Errorf("unknown driver %q (forgotten import?)", driverName)
+	}
+
+	err := driveri.Init(logger)
+	if err != nil {
+		return nil, err
 	}
 
 	db, err := sql.Open(driverName, connectionString)
@@ -83,6 +91,7 @@ func Open(driverName, connectionString string) (*SQLStreamPersister, error) {
 
 	return &SQLStreamPersister{
 		Driver:           driveri,
+		logger:           logger.New("logger", "sql-persistence"),
 		db:               db,
 		registeredTables: map[string]*Table{},
 	}, nil
@@ -97,6 +106,8 @@ func (sp *SQLStreamPersister) Close() error {
 }
 
 func (sp *SQLStreamPersister) Register(name string, objTemplate interface{}) error {
+	sp.logger.Debug("registering database table...", "tableName", name)
+
 	table := newTable(name)
 	t := reflect.TypeOf(objTemplate).Elem()
 	t.NumField()
@@ -153,12 +164,16 @@ func (sp *SQLStreamPersister) Register(name string, objTemplate interface{}) err
 	sp.registeredTables[name] = table
 	sp.registeredTablesMu.Unlock()
 
+	sp.logger.Debug("database table registered", "tableName", name, "columns", table.GetColumnNames())
+
 	return sp.inTransaction(func(tx *sql.Tx) error {
+		sp.logger.Debug("dropping table", "tableName", table.TableName)
 		err := sp.Driver.DropTableIfExists(tx, table)
 		if err != nil {
 			return err
 		}
 
+		sp.logger.Debug("creating table", "tableName", table.TableName)
 		err = sp.Driver.CreateTableIfNotExists(tx, table)
 		if err != nil {
 			return err
@@ -169,19 +184,25 @@ func (sp *SQLStreamPersister) Register(name string, objTemplate interface{}) err
 }
 
 func (sp *SQLStreamPersister) Persist(name string, stream streams.Readable) error {
+	start := time.Now()
+	sp.logger.Debug("persisting stream to database table...", "tableName", name)
+
 	sp.registeredTablesMu.RLock()
 	table, ok := sp.registeredTables[name]
 	sp.registeredTablesMu.RUnlock()
 
 	if !ok {
-		return fmt.Errorf("sqlpersistence: trying to persist unregistered table")
+		return fmt.Errorf("trying to persist unregistered table")
 	}
 
 	return sp.inTransaction(func(tx *sql.Tx) error {
-		err := sp.Driver.PersistStream(tx, table, stream)
+		rowsAffected, err := sp.Driver.PersistStream(tx, table, stream)
 		if err != nil {
+			sp.logger.Error("failed to persist stream to database", "table", name, "took", time.Since(start))
 			return err
 		}
+
+		sp.logger.Debug("stream persisted to database", "table", name, "took", time.Since(start), "rowsAffected", rowsAffected)
 
 		return nil
 	})
