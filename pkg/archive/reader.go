@@ -30,7 +30,7 @@ func NewArchiveReader(engine *xorm.Engine, batchSize int64) *ArchiveReader {
 
 // ReadAllEvents reads all events stored in archive database
 func (ar *ArchiveReader) ReadAllEvents() (streams.Readable, <-chan error) {
-	r, w := streams.NewReadableWritable()
+	r, w := streams.New()
 	outErr := make(chan error)
 
 	var wg sync.WaitGroup

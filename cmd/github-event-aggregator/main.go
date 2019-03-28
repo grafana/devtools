@@ -10,7 +10,7 @@ import (
 
 	"github.com/grafana/devtools/pkg/archive"
 	"github.com/grafana/devtools/pkg/githubstats"
-	"github.com/grafana/devtools/pkg/streams"
+	"github.com/grafana/devtools/pkg/streams/memorybus"
 	"github.com/grafana/devtools/pkg/streams/projections"
 	_ "github.com/grafana/devtools/pkg/streams/sqlpersistence/mysqlpersistence"
 	_ "github.com/grafana/devtools/pkg/streams/sqlpersistence/postgrespersistence"
@@ -45,8 +45,8 @@ func main() {
 		}
 	}()
 
-	s := streams.New()
-	projectionEngine := projections.New(s, streamPersister)
+	bus := memorybus.New()
+	projectionEngine := projections.New(bus, streamPersister)
 	githubstats.RegisterProjections(projectionEngine)
 
 	engine, err := archive.InitDatabase(database, fromConnectionString)
@@ -55,19 +55,19 @@ func main() {
 	}
 
 	reader := archive.NewArchiveReader(engine, limit)
-
 	events, errors := reader.ReadAllEvents()
+
 	go printErrorSummary(errors)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	go func() {
-		<-s.Start()
+		<-bus.Start()
 		wg.Done()
 	}()
 
-	s.Publish(githubstats.GithubEventStream, events)
+	bus.Publish(githubstats.GithubEventStream, events)
 	wg.Wait()
 
 	elapsed := time.Since(start)

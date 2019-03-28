@@ -16,16 +16,16 @@ type StreamProjectionEngine interface {
 }
 
 type streamProjectionEngine struct {
-	streamingEngine streams.Engine
-	persister       streams.StreamPersister
-	projections     map[string]Projection
+	bus         streams.Bus
+	persister   streams.StreamPersister
+	projections map[string]Projection
 }
 
-func New(streamingEngine streams.Engine, persister streams.StreamPersister) StreamProjectionEngine {
+func New(bus streams.Bus, persister streams.StreamPersister) StreamProjectionEngine {
 	return &streamProjectionEngine{
-		streamingEngine: streamingEngine,
-		persister:       persister,
-		projections:     map[string]Projection{},
+		bus:         bus,
+		persister:   persister,
+		projections: map[string]Projection{},
 	}
 }
 
@@ -47,12 +47,12 @@ func (e *streamProjectionEngine) Register(streamProjection *StreamProjection) {
 			}
 		}
 		e.persister.Register(streamProjection.PersistTo, streamProjection.PersistObject)
-		e.streamingEngine.Subscribe([]string{topic}, func(p streams.Publisher, stream streams.Readable) {
+		e.bus.Subscribe([]string{topic}, func(p streams.Publisher, stream streams.Readable) {
 			log.Println("Persisting projection", "name", streamProjection.PersistTo)
 			e.persister.Persist(streamProjection.PersistTo, stream)
 		})
 	}
-	e.streamingEngine.Subscribe(streamProjection.createSubscriber())
+	e.bus.Subscribe(streamProjection.createSubscriber())
 }
 
 func FromStream(name string) *StreamProjectionBuilder {
