@@ -45,8 +45,10 @@ func (sp *mySqlDriver) Init(logger log.Logger) error {
 }
 
 func (sp *mySqlDriver) DropTableIfExists(tx *sql.Tx, t *sqlpersistence.Table) error {
-	_, err := tx.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS %s`, t.TableName))
+	dropTableSQL := fmt.Sprintf(`DROP TABLE IF EXISTS %s`, t.TableName)
+	_, err := tx.Exec(dropTableSQL)
 	if err != nil {
+		sp.logger.Debug("failed to drop database table", "table", t.TableName, "sql", dropTableSQL)
 		return err
 	}
 
@@ -54,23 +56,37 @@ func (sp *mySqlDriver) DropTableIfExists(tx *sql.Tx, t *sqlpersistence.Table) er
 }
 
 func (sp *mySqlDriver) CreateTableIfNotExists(tx *sql.Tx, t *sqlpersistence.Table) error {
-	var createTable bytes.Buffer
-	createTable.WriteString(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ( ", t.TableName))
+	var createTableSQL bytes.Buffer
+	createTableSQL.WriteString(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (", t.TableName))
 	primaryKeys := []string{}
 	for _, c := range t.Columns {
-		createTable.WriteString(c.ColumnName + " ")
-		createTable.WriteString(c.ColumnType + " ")
-		createTable.WriteString("NOT NULL, ")
-		if c.PrimaryKey {
-			primaryKeys = append(primaryKeys, c.ColumnName)
+		createTableSQL.WriteString(c.Name)
+		createTableSQL.WriteString(" ")
+
+		columnType, err := getColumnType(c)
+		if err != nil {
+			return err
+		}
+
+		createTableSQL.WriteString(columnType)
+
+		if !c.IsNullable {
+			createTableSQL.WriteString(" NOT NULL")
+		}
+
+		createTableSQL.WriteString(", ")
+
+		if c.IsPrimaryKey {
+			primaryKeys = append(primaryKeys, c.Name)
 		}
 	}
-	createTable.WriteString("PRIMARY KEY(")
-	createTable.WriteString(strings.Join(primaryKeys, ","))
-	createTable.WriteString("))")
-	_, err := tx.Exec(createTable.String())
+	createTableSQL.WriteString("PRIMARY KEY(")
+	createTableSQL.WriteString(strings.Join(primaryKeys, ","))
+	createTableSQL.WriteString("))")
+	_, err := tx.Exec(createTableSQL.String())
 
 	if err != nil {
+		sp.logger.Debug("failed to create database table", "table", t.TableName, "sql", createTableSQL.String())
 		return err
 	}
 
@@ -154,4 +170,30 @@ func (sp *mySqlDriver) PersistStream(tx *sql.Tx, t *sqlpersistence.Table, stream
 	}
 
 	return rowsAffected, nil
+}
+
+func getColumnType(c *sqlpersistence.Column) (string, error) {
+	switch c.Type {
+	case sqlpersistence.ColumnTypeInteger:
+		switch c.Length {
+		case 32:
+			return "INTEGER", nil
+		case 64:
+			return "BIGINT", nil
+		}
+	case sqlpersistence.ColumnTypeFloat:
+		return "REAL", nil
+	case sqlpersistence.ColumnTypeString:
+		columnType := fmt.Sprintf("VARCHAR(%d)", c.Length)
+
+		if c.IsUnicode {
+			columnType += " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+		}
+
+		return columnType, nil
+	case sqlpersistence.ColumnTypeBoolean:
+		return "BOOLEAN", nil
+	}
+
+	return "", fmt.Errorf("column type %s not supported", c.Type)
 }

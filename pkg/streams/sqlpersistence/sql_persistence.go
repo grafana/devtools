@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,9 +61,10 @@ func Drivers() []string {
 
 type SQLStreamPersister struct {
 	streams.StreamPersister
+	DriverName         string
+	ConnectionString   string
 	Driver             Driver
 	logger             log.Logger
-	db                 *sql.DB
 	registeredTablesMu sync.RWMutex
 	registeredTables   map[string]*Table
 }
@@ -80,29 +82,45 @@ func Open(logger log.Logger, driverName, connectionString string) (*SQLStreamPer
 		return nil, err
 	}
 
-	db, err := sql.Open(driverName, connectionString)
+	sqlStreamPersister := SQLStreamPersister{
+		logger:           logger.New("logger", "sql-persistence"),
+		DriverName:       driverName,
+		ConnectionString: connectionString,
+		Driver:           driveri,
+		registeredTables: map[string]*Table{},
+	}
+
+	db, err := sqlStreamPersister.connect()
+	defer sqlStreamPersister.closeConnection(db)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = db.Ping(); err != nil {
+	return &sqlStreamPersister, nil
+}
+
+func (sp *SQLStreamPersister) connect() (*sql.DB, error) {
+	db, err := sql.Open(sp.DriverName, sp.ConnectionString)
+	if err != nil {
+		sp.logger.Error("failed to connect to database", "driver", sp.DriverName)
 		return nil, err
 	}
 
-	return &SQLStreamPersister{
-		Driver:           driveri,
-		logger:           logger.New("logger", "sql-persistence"),
-		db:               db,
-		registeredTables: map[string]*Table{},
-	}, nil
-}
-
-func (sp *SQLStreamPersister) Close() error {
-	if sp.db != nil {
-		return sp.db.Close()
+	if err = db.Ping(); err != nil {
+		sp.logger.Error("failed to ping database", "driver", sp.DriverName)
+		return nil, err
 	}
 
-	return nil
+	return db, nil
+}
+
+func (sp *SQLStreamPersister) closeConnection(db *sql.DB) {
+	if db != nil {
+		err := db.Close()
+		if err != nil {
+			sp.logger.Error("failed to close connection", "error", err)
+		}
+	}
 }
 
 func (sp *SQLStreamPersister) Register(name string, objTemplate interface{}) error {
@@ -114,48 +132,82 @@ func (sp *SQLStreamPersister) Register(name string, objTemplate interface{}) err
 	setColumnDataType := func(t reflect.Type, c *Column) {
 		switch t.Kind() {
 		case reflect.TypeOf(time.Time{}).Kind():
-			c.ColumnType = "integer"
+			c.Type = ColumnTypeInteger
+			c.Length = 32
 			c.ConvertFn = func(v interface{}) interface{} {
 				return v.(time.Time).Unix()
 			}
 		case reflect.String:
-			c.ColumnType = "varchar(256)"
+			c.Type = ColumnTypeString
+
+			if c.Length == 0 {
+				c.Length = 256
+			}
+
 		case reflect.Float64:
-			c.ColumnType = "real"
+			c.Type = ColumnTypeFloat
+			c.Length = 64
 		case reflect.Float32:
-			c.ColumnType = "real"
+			c.Type = ColumnTypeFloat
+			c.Length = 32
 		case reflect.Int, reflect.Int32:
-			c.ColumnType = "integer"
+			c.Type = ColumnTypeInteger
+			c.Length = 32
 		case reflect.Int64:
-			c.ColumnType = "bigint"
+			c.Type = ColumnTypeInteger
+			c.Length = 64
 		case reflect.Bool:
-			c.ColumnType = "boolean"
+			c.Type = ColumnTypeBoolean
 		}
 	}
+
 	for n := 0; n < t.NumField(); n++ {
 		f := t.Field(n)
 		if !reflect.ValueOf(objTemplate).Elem().Field(n).CanSet() {
 			continue
 		}
-		columnName := strings.ToLower(f.Name)
-		primaryKey := false
+
+		c := newColumn(f.Name, strings.ToLower(f.Name))
+
 		tag := f.Tag.Get("persist")
 		if tag != "" {
 			parts := strings.Split(tag, ",")
 			if len(parts) > 0 && parts[0] == "-" {
 				continue
 			}
+
 			if len(parts) > 0 && parts[0] != "" {
-				columnName = strings.ToLower(parts[0])
+				c.Name = strings.ToLower(parts[0])
 			}
-			for _, p := range parts {
-				if p == "primarykey" {
-					primaryKey = true
+
+			if len(parts) > 1 {
+				if strings.Contains(parts[1], "primarykey") {
+					c.IsPrimaryKey = true
+				}
+
+				if strings.Contains(parts[1], "not null") {
+					c.IsNullable = false
+				} else if strings.Contains(parts[1], "null") {
+					c.IsNullable = true
+				}
+
+				if strings.Contains(parts[1], "unicode") {
+					c.IsUnicode = true
+				}
+
+				lengthIndex := strings.Index(parts[1], "length(")
+				lastLengthIndex := strings.LastIndex(parts[1], ")")
+				if lengthIndex != -1 && lastLengthIndex != -1 {
+					lengthStr := parts[1][lengthIndex+7 : lastLengthIndex]
+					if length, err := strconv.Atoi(lengthStr); err != nil {
+						sp.logger.Error("failed to parse column length to integer", "input", lengthStr)
+					} else {
+						c.Length = length
+					}
 				}
 			}
 		}
 
-		c := newColumn(f.Name, columnName, primaryKey)
 		setColumnDataType(f.Type, c)
 		table.Columns = append(table.Columns, c)
 	}
@@ -166,7 +218,13 @@ func (sp *SQLStreamPersister) Register(name string, objTemplate interface{}) err
 
 	sp.logger.Debug("database table registered", "tableName", name, "columns", table.GetColumnNames())
 
-	return sp.inTransaction(func(tx *sql.Tx) error {
+	db, err := sp.connect()
+	defer sp.closeConnection(db)
+	if err != nil {
+		return err
+	}
+
+	return sp.inTransaction(db, func(tx *sql.Tx) error {
 		sp.logger.Debug("dropping table", "tableName", table.TableName)
 		err := sp.Driver.DropTableIfExists(tx, table)
 		if err != nil {
@@ -195,7 +253,13 @@ func (sp *SQLStreamPersister) Persist(name string, stream streams.Readable) erro
 		return fmt.Errorf("trying to persist unregistered table")
 	}
 
-	return sp.inTransaction(func(tx *sql.Tx) error {
+	db, err := sp.connect()
+	defer sp.closeConnection(db)
+	if err != nil {
+		return err
+	}
+
+	return sp.inTransaction(db, func(tx *sql.Tx) error {
 		rowsAffected, err := sp.Driver.PersistStream(tx, table, stream)
 		if err != nil {
 			sp.logger.Error("failed to persist stream to database", "table", name, "took", time.Since(start))
@@ -208,8 +272,8 @@ func (sp *SQLStreamPersister) Persist(name string, stream streams.Readable) erro
 	})
 }
 
-func (sp *SQLStreamPersister) inTransaction(fn func(tx *sql.Tx) error) error {
-	tx, err := sp.db.Begin()
+func (sp *SQLStreamPersister) inTransaction(db *sql.DB, fn func(tx *sql.Tx) error) error {
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -232,19 +296,44 @@ func (sp *SQLStreamPersister) inTransaction(fn func(tx *sql.Tx) error) error {
 	return nil
 }
 
+type ColumnType int
+
+const (
+	ColumnTypeUnknown ColumnType = 1 << iota
+	ColumnTypeInteger
+	ColumnTypeFloat
+	ColumnTypeBoolean
+	ColumnTypeString
+)
+
+func (ct ColumnType) String() string {
+	names := map[int]string{
+		int(ColumnTypeUnknown): "unknown",
+		int(ColumnTypeInteger): "integer",
+		int(ColumnTypeFloat):   "float",
+		int(ColumnTypeString):  "string",
+		int(ColumnTypeBoolean): "boolean",
+	}
+	return names[int(ct)]
+}
+
 type Column struct {
 	OriginalFieldName string
-	ColumnName        string
-	ColumnType        string
-	PrimaryKey        bool
+	Name              string
+	Type              ColumnType
+	Length            int
+	DatabaseType      string
+	IsPrimaryKey      bool
+	IsNullable        bool
+	IsUnicode         bool
 	ConvertFn         func(v interface{}) interface{}
 }
 
-func newColumn(originalFieldName, columnName string, primaryKey bool) *Column {
+func newColumn(originalFieldName, name string) *Column {
 	return &Column{
 		OriginalFieldName: originalFieldName,
-		ColumnName:        columnName,
-		PrimaryKey:        primaryKey,
+		Name:              name,
+		Type:              ColumnTypeUnknown,
 	}
 }
 
@@ -263,7 +352,7 @@ func newTable(tableName string) *Table {
 func (t *Table) GetColumnNames() []string {
 	columnNames := []string{}
 	for _, c := range t.Columns {
-		columnNames = append(columnNames, c.ColumnName)
+		columnNames = append(columnNames, c.Name)
 	}
 	return columnNames
 }
