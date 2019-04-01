@@ -92,6 +92,19 @@ func TestStreams(t *testing.T) {
 				So(result[0], ShouldResemble, []T{0 + (2 * 2) + (4*4 + (6 * 6) + (8 * 8))})
 			})
 
+			Convey("When flat map should return slice with result", func() {
+				flapMapped := in.FlatMap(func(msg T) []interface{} {
+					return []interface{}{msg, msg}
+				})
+
+				result := writeAndReadAllMessages(ReadableCollection{flapMapped}, WritableCollection{out}, func(writer int, out Writable) {
+					out <- 1
+					out <- 2
+				})
+
+				So(result[0], ShouldResemble, []T{1, 1, 2, 2})
+			})
+
 			Convey("When grouping by should return grouped result", func() {
 				type message struct {
 					id    int64

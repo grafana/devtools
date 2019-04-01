@@ -151,6 +151,21 @@ func (r Readable) Reduce(fn ReduceFunc, accumulator T) Readable {
 	return Reduce(r, fn, accumulator)
 }
 
+type FlatMapFunc func(msg T) []interface{}
+
+func FlatMap(in Readable, fn FlatMapFunc) Readable {
+	return in.Transform(func(msg T, out Writable) {
+		slice := fn(msg)
+		for _, value := range slice {
+			out <- value
+		}
+	})
+}
+
+func (r Readable) FlatMap(fn FlatMapFunc) Readable {
+	return FlatMap(r, fn)
+}
+
 func Split(streamCount int, stream Readable) ReadableCollection {
 	rc, wc := NewCollection(streamCount)
 
