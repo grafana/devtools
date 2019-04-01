@@ -56,13 +56,6 @@ func main() {
 		logger.Fatal("Failed to open sql stream persister", "error", err)
 	}
 
-	defer func() {
-		err := streamPersister.Close()
-		if err != nil {
-			logger.Fatal("failed to close stream persister", "error", err)
-		}
-	}()
-
 	bus := memorybus.New()
 	bus.SetLogger(logger)
 
