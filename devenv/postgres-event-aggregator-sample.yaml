@@ -1,0 +1,11 @@
+version: "2"
+services:
+  event-aggregator:
+    image: grafana/devtools-github-event-aggregator:latest
+    network_mode: host
+    command:
+      - '-database=postgres'
+      - '-fromConnectionstring=postgresql://test:test@localhost:5432/github_stats?sslmode=disable'
+      - '-toConnectionstring=postgresql://test:test@localhost:5432/github_stats?sslmode=disable'
+      - '-limit=5000'
+      - '-verbose=true'

@@ -1,11 +1,12 @@
 version: "2"
 services:
-  archive:
+  archive-parser:
     image: grafana/devtools-github-archive-parser:latest
     network_mode: host
     command:
-      - '-database=postgres'
-      - '-connstring=postgresql://grafana:password@localhost:5432/grafana?sslmode=disable'
+      - '-database=mysql'
+      - '-connstring=test:test@tcp(localhost:3306)/github_stats'
       - '-maxDuration=10h'
       - '-orgNames=grafana'
       - '-overrideAllFiles=true'
+      - '-verbose=true'
