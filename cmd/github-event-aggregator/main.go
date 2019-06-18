@@ -28,14 +28,12 @@ func main() {
 		fromConnectionString string
 		toConnectionString   string
 		limit                int64
-		readonlyUser         string
 		verboseLogging       bool
 	)
 	flag.StringVar(&database, "database", "", "database type")
 	flag.StringVar(&fromConnectionString, "fromConnectionstring", "", "")
 	flag.StringVar(&toConnectionString, "toConnectionstring", "", "")
 	flag.Int64Var(&limit, "limit", 5000, "")
-	flag.StringVar(&readonlyUser, "readonlyUser", "gh_reader", "The readonly database user to grant select permission on generated tables")
 	flag.BoolVar(&verboseLogging, "verbose", false, "enable verbose logging")
 	flag.Parse()
 
