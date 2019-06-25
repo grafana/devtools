@@ -1,0 +1,80 @@
+# github.com/NYTimes/gziphandler v1.1.1
+github.com/NYTimes/gziphandler
+# github.com/daniellee/go-github v0.0.0-20180424141239-0c1a3bf8dc0b
+github.com/daniellee/go-github/github
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/go-sql-driver/mysql v0.0.0-20180113200744-2cc627ac8def
+github.com/go-sql-driver/mysql
+# github.com/go-stack/stack v1.8.0
+github.com/go-stack/stack
+# github.com/go-xorm/builder v0.1.0
+github.com/go-xorm/builder
+# github.com/go-xorm/core v0.5.7
+github.com/go-xorm/core
+# github.com/go-xorm/xorm v0.6.4
+github.com/go-xorm/xorm
+# github.com/golang/protobuf v1.2.0
+github.com/golang/protobuf/proto
+# github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135
+github.com/google/go-querystring/query
+# github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1
+github.com/gopherjs/gopherjs/js
+# github.com/grafana/grafana v5.0.4+incompatible
+github.com/grafana/grafana/pkg/services/sqlstore/migrator
+github.com/grafana/grafana/pkg/log
+github.com/grafana/grafana/pkg/util
+# github.com/inconshreveable/log15 v0.0.0-20171019012758-0decfc6c20d9
+github.com/inconshreveable/log15
+# github.com/jtolds/gls v4.20.0+incompatible
+github.com/jtolds/gls
+# github.com/lib/pq v0.0.0-20180327071824-d34b9ff171c2
+github.com/lib/pq
+github.com/lib/pq/oid
+# github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
+github.com/mailru/easyjson
+github.com/mailru/easyjson/jlexer
+github.com/mailru/easyjson/jwriter
+github.com/mailru/easyjson/buffer
+# github.com/mattn/go-colorable v0.0.9
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.3
+github.com/mattn/go-isatty
+# github.com/mattn/go-sqlite3 v1.6.0
+github.com/mattn/go-sqlite3
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/smartystreets/assertions v1.0.0
+github.com/smartystreets/assertions
+github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch
+github.com/smartystreets/assertions/internal/go-render/render
+github.com/smartystreets/assertions/internal/oglematchers
+# github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
+github.com/smartystreets/goconvey/convey
+github.com/smartystreets/goconvey/convey/reporting
+github.com/smartystreets/goconvey/convey/gotest
+# github.com/stretchr/testify v1.3.0
+github.com/stretchr/testify/assert
+# github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
+github.com/teris-io/shortid
+# golang.org/x/net v0.0.0-20190311183353-d8887717615a
+golang.org/x/net/context/ctxhttp
+golang.org/x/net/context
+# golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
+golang.org/x/oauth2
+golang.org/x/oauth2/internal
+# golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a
+golang.org/x/sys/unix
+# google.golang.org/appengine v1.4.0
+google.golang.org/appengine/cloudsql
+google.golang.org/appengine/urlfetch
+google.golang.org/appengine/internal
+google.golang.org/appengine/internal/urlfetch
+google.golang.org/appengine/internal/base
+google.golang.org/appengine/internal/datastore
+google.golang.org/appengine/internal/log
+google.golang.org/appengine/internal/remote_api
+# gopkg.in/ini.v1 v1.33.0
+gopkg.in/ini.v1
