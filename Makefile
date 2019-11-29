@@ -57,6 +57,5 @@ clean:
 
 generate-dashboards:
 	bash scripts/jsonnet-check.sh
-	$(info Generating dashboards DS_TYPE=${DS_TYPE}, DS_NAME=${DS_NAME} and FROM=${FROM})
-	bash scripts/jsonnet-generate.sh ${DS_TYPE} ${DS_NAME} ${FROM::}
+	bash scripts/jsonnet-generate.sh ${DS_TYPE} ${DS_NAME} ${FROM} ${OUTPUT}
 
