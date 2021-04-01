@@ -46,7 +46,11 @@ func (p *ReleaseAnnotationProjections) init(id int) projections.ProjectionState 
 func (p *ReleaseAnnotationProjections) apply(state *ReleaseAnnotationState, evt *ghevents.Event) {
 	state.Repo = evt.Repo.Name
 	state.Time = *evt.Payload.Release.PublishedAt
-	state.Title = *evt.Payload.Release.Name
+	if evt.Payload.Release.Name != nil {
+		state.Title = *evt.Payload.Release.Name
+	} else {
+		state.Title = ""
+	}
 	state.Tags = evt.Payload.Release.TagName
 	state.Prerelease = evt.Payload.Release.Prerelease || strings.Contains(evt.Payload.Release.TagName, "beta") || strings.Contains(evt.Payload.Release.TagName, "rc")
 	if state.Prerelease {
