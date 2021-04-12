@@ -14,7 +14,7 @@ UPTODATE := .uptodate
 # Dependencies (i.e. things that go in the image) still need to be explicitly
 # declared.
 %/$(UPTODATE): %/Dockerfile
-	$(SUDO) docker build -t $(IMAGE_PREFIX)$(shell basename $(@D)) $(@D)/
+	$(SUDO) docker build -t $(IMAGE_PREFIX)$(shell basename $(@D)) -f $(@D)/Dockerfile .
 	$(SUDO) docker tag $(IMAGE_PREFIX)$(shell basename $(@D)) $(IMAGE_PREFIX)$(shell basename $(@D)):$(GIT_REVISION)
 	touch $@
 
