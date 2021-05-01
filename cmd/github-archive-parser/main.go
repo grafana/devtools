@@ -46,7 +46,7 @@ func main() {
 	flag.StringVar(&orgNamesFlag, "orgNames", "grafana", "comma sepearted list of orgs to download all events for")
 	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "")
 	flag.BoolVar(&overrideAllFiles, "overrideAllFiles", false, "overrides all files instead of just those missing")
-	flag.IntVar(&numWorkers, "number of workers to spawn", runtime.NumCPU(), "defaults to the number of CPUs")
+	flag.IntVar(&numWorkers, "num-workers", runtime.NumCPU(), "number of workers to spawn")
 	flag.BoolVar(&verboseLogging, "verbose", false, "enable verbose logging")
 	flag.Parse()
 
