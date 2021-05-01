@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -33,6 +34,7 @@ func main() {
 		orgNames         []string
 		maxDuration      time.Duration
 		overrideAllFiles bool
+		numWorkers       int
 		verboseLogging   bool
 	)
 
@@ -44,6 +46,7 @@ func main() {
 	flag.StringVar(&orgNamesFlag, "orgNames", "grafana", "comma sepearted list of orgs to download all events for")
 	flag.DurationVar(&maxDuration, "maxDuration", time.Minute*10, "")
 	flag.BoolVar(&overrideAllFiles, "overrideAllFiles", false, "overrides all files instead of just those missing")
+	flag.IntVar(&numWorkers, "number of workers to spawn", runtime.NumCPU(), "defaults to the number of CPUs")
 	flag.BoolVar(&verboseLogging, "verbose", false, "enable verbose logging")
 	flag.Parse()
 
@@ -81,7 +84,7 @@ func main() {
 	}
 
 	doneChan := make(chan time.Time)
-	ad := archive.NewArchiveDownloader(engine, overrideAllFiles, archiveUrl, orgNames, startDate, stopDate, doneChan)
+	ad := archive.NewArchiveDownloader(engine, overrideAllFiles, archiveUrl, orgNames, startDate, stopDate, numWorkers, doneChan)
 	ad.SetLogger(logger)
 
 	go func() {
