@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,10 +56,11 @@ type ArchiveDownloader struct {
 	doneChan         chan time.Time
 	eventChan        chan *common.GithubEvent
 	overrideAllFiles bool
+	numWorkers       int
 }
 
 // NewArchiveDownloader creates a new downloader
-func NewArchiveDownloader(engine *xorm.Engine, overrideAllFiles bool, url string, orgNames []string, startDate, stopDate time.Time, doneChan chan time.Time) *ArchiveDownloader {
+func NewArchiveDownloader(engine *xorm.Engine, overrideAllFiles bool, url string, orgNames []string, startDate, stopDate time.Time, numWorkers int, doneChan chan time.Time) *ArchiveDownloader {
 	return &ArchiveDownloader{
 		logger:           log.New(),
 		engine:           engine,
@@ -71,6 +71,7 @@ func NewArchiveDownloader(engine *xorm.Engine, overrideAllFiles bool, url string
 		doneChan:         doneChan,
 		eventChan:        make(chan *common.GithubEvent, 10),
 		overrideAllFiles: overrideAllFiles,
+		numWorkers:       numWorkers,
 	}
 }
 
@@ -125,7 +126,7 @@ func (ad *ArchiveDownloader) DownloadEvents() error {
 	wg := sync.WaitGroup{}
 
 	// start workers
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < ad.numWorkers; i++ {
 		ad.spawnWorker(i, &wg, downloadUrls, done)
 	}
 
