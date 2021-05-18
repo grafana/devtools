@@ -2,12 +2,11 @@ package archive
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,8 +19,94 @@ import (
 	"github.com/pkg/errors"
 )
 
-var eventCount int64
-var filesWithErrors = []string{}
+// ArchiveDownloader downloads, decompress and store events for github orgs
+type ArchiveDownloader struct {
+	logger           log.Logger
+	engine           *xorm.Engine
+	url              string
+	orgNames         []string
+	startDate        time.Time
+	stopDate         time.Time
+	overrideAllFiles bool
+	numWorkers       int
+	eventCount       int64
+	filesWithErrors  []string
+	skipErrors       bool
+}
+
+// NewArchiveDownloader creates a new downloader
+func NewArchiveDownloader(
+	engine *xorm.Engine,
+	overrideAllFiles bool,
+	url string,
+	orgNames []string,
+	startDate, stopDate time.Time,
+	numWorkers int,
+	skipErrors bool,
+	logger log.Logger,
+) *ArchiveDownloader {
+	return &ArchiveDownloader{
+		logger:           logger.New("logger", "archive-downloader"),
+		engine:           engine,
+		url:              url,
+		orgNames:         orgNames,
+		startDate:        startDate,
+		stopDate:         stopDate,
+		overrideAllFiles: overrideAllFiles,
+		numWorkers:       numWorkers,
+		filesWithErrors:  make([]string, 0, 16),
+		skipErrors:       skipErrors,
+	}
+}
+
+// DownloadEvents start to download all archive events
+func (ad *ArchiveDownloader) DownloadEvents(ctx context.Context) error {
+	start := time.Now()
+
+	ad.logger.Info("downloading events...")
+
+	var archFiles []*common.ArchiveFile
+	if !ad.overrideAllFiles {
+		ad.logger.Debug("reading stored archive files from the database...")
+		err := ad.engine.Find(&archFiles)
+		if err != nil {
+			return err
+		}
+		ad.logger.Debug("stored archive files read from the database", "archiveFiles", len(archFiles))
+	}
+
+	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
+	var downloadUrls = make(chan *common.ArchiveFile, 16)
+	wg := sync.WaitGroup{}
+
+	// start workers
+	for i := 0; i < ad.numWorkers; i++ {
+		ad.spawnWorker(ctx, i, &wg, downloadUrls)
+	}
+
+	go func() {
+		defer close(downloadUrls)
+
+		for _, url := range urls {
+			select {
+			case downloadUrls <- url:
+			case <-ctx.Done():
+				ad.logger.Debug("closing down gracefully, cancelled by parent")
+				return
+			}
+		}
+	}()
+
+	// wait for all workers to complete
+	wg.Wait()
+
+	ad.logger.Info("events downloaded and filtered", "eventCount", ad.eventCount, "fileErrors", len(ad.filesWithErrors), "took", time.Since(start))
+	if len(ad.filesWithErrors) > 0 {
+		ad.logger.Debug("failed downloads of dates", "dates", strings.Join(ad.filesWithErrors, ","))
+	}
+
+	return nil
+}
 
 func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, st, stopDate time.Time) []*common.ArchiveFile {
 	var result []*common.ArchiveFile
@@ -45,41 +130,9 @@ func (ad *ArchiveDownloader) buildUrlsDownload(archFiles []*common.ArchiveFile, 
 	return result
 }
 
-// ArchiveDownloader downloads, decompress and store events for github orgs
-type ArchiveDownloader struct {
-	logger           log.Logger
-	engine           *xorm.Engine
-	url              string
-	orgNames         []string
-	startDate        time.Time
-	stopDate         time.Time
-	doneChan         chan time.Time
-	eventChan        chan *common.GithubEvent
-	overrideAllFiles bool
-	numWorkers       int
-}
-
-// NewArchiveDownloader creates a new downloader
-func NewArchiveDownloader(engine *xorm.Engine, overrideAllFiles bool, url string, orgNames []string, startDate, stopDate time.Time, numWorkers int, doneChan chan time.Time) *ArchiveDownloader {
-	return &ArchiveDownloader{
-		logger:           log.New(),
-		engine:           engine,
-		url:              url,
-		orgNames:         orgNames,
-		startDate:        startDate,
-		stopDate:         stopDate,
-		doneChan:         doneChan,
-		eventChan:        make(chan *common.GithubEvent, 10),
-		overrideAllFiles: overrideAllFiles,
-		numWorkers:       numWorkers,
-	}
-}
-
-func (ad *ArchiveDownloader) SetLogger(logger log.Logger) {
-	ad.logger = logger.New("logger", "archive-downloader")
-}
-
-func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, downloadUrls chan *common.ArchiveFile, done chan bool) {
+func (ad *ArchiveDownloader) spawnWorker(
+	ctx context.Context, index int, wg *sync.WaitGroup, downloadUrls chan *common.ArchiveFile,
+) {
 	wg.Add(1)
 	go func(workerID int) {
 		defer wg.Done()
@@ -90,13 +143,16 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 
 		for {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				logger.Debug("worker is complete")
 				return
-			case u := <-downloadUrls:
-				err := ad.download(u)
-				if err != nil {
-					filesWithErrors = append(filesWithErrors, fmt.Sprintf("%v", u.CreatedAt))
+			case u, more := <-downloadUrls:
+				if !more {
+					return
+				}
+
+				if err := ad.download(ctx, u); err != nil {
+					ad.filesWithErrors = append(ad.filesWithErrors, fmt.Sprintf("%v", u.CreatedAt))
 					logger.Error("failed to download file", "createdAt", u.CreatedAt, "error", err)
 				}
 			}
@@ -104,80 +160,20 @@ func (ad *ArchiveDownloader) spawnWorker(index int, wg *sync.WaitGroup, download
 	}(index)
 }
 
-// DownloadEvents start to download all archive events
-func (ad *ArchiveDownloader) DownloadEvents() error {
+func (ad *ArchiveDownloader) download(ctx context.Context, file *common.ArchiveFile) error {
 	start := time.Now()
-
-	ad.logger.Info("downloading events...")
-
-	var archFiles []*common.ArchiveFile
-	if !ad.overrideAllFiles {
-		ad.logger.Debug("reading stored archive files from the database...")
-		err := ad.engine.Find(&archFiles)
-		if err != nil {
-			return err
-		}
-		ad.logger.Debug("stored archive files read from the database", "archiveFiles", len(archFiles))
-	}
-
-	urls := ad.buildUrlsDownload(archFiles, ad.startDate, ad.stopDate)
-	var downloadUrls = make(chan *common.ArchiveFile)
-	var done = make(chan bool)
-	wg := sync.WaitGroup{}
-
-	// start workers
-	for i := 0; i < ad.numWorkers; i++ {
-		ad.spawnWorker(i, &wg, downloadUrls, done)
-	}
-
-	go func() {
-		i := 0
-
-		for {
-			select {
-			case <-ad.doneChan:
-				ad.logger.Debug("closing down gracefully, cancelled by parent")
-				close(done)
-				return
-			default:
-				if i == len(urls) {
-					close(done)
-					return
-				}
-				downloadUrls <- urls[i]
-				i++
-			}
-		}
-	}()
-
-	defer close(downloadUrls)
-
-	// wait for all workers to complete
-	wg.Wait()
-
-	ad.logger.Info("events downloaded and filtered", "eventCount", eventCount, "fileErrors", len(filesWithErrors), "took", time.Since(start))
-	if len(filesWithErrors) > 0 {
-		ad.logger.Debug("failed downloads of dates", "dates", strings.Join(filesWithErrors, ","))
-	}
-
-	return nil
-}
-
-func (ad *ArchiveDownloader) buildDownloadURL(file *common.ArchiveFile) string {
-	ft := time.Unix(file.ID, 0).UTC()
-	return fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
-}
-
-func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
-	start := time.Now()
-	ad.logger.Debug("downloading file... ", "date", file.CreatedAt)
+	ad.logger.Debug("downloading file...", "date", file.CreatedAt)
 
 	url := ad.buildDownloadURL(file)
-	res, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "failed to download json file")
 	}
-
 	defer res.Body.Close()
 
 	ad.logger.Debug("file downloaded", "date", file.CreatedAt, "took", time.Since(start))
@@ -188,27 +184,21 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		return nil
 	}
 
-	//create reader that can reader gziped contetn
+	// create reader that can reader gziped content
 	zipReader, err := gzip.NewReader(res.Body)
 	if err != nil {
 		return errors.Wrap(err, "parsing compress content")
 	}
-
-	//read all zipped data into memory.
-	byteArray, err := ioutil.ReadAll(zipReader)
-	if err != nil {
-		return err
-	}
-
 	defer zipReader.Close()
 
-	inMemReader := bytes.NewReader(byteArray)
-
 	// decompress response body and send to workers.
-	bufferReader := bufio.NewReaderSize(inMemReader, 2048*2048)
+	bufferReader := bufio.NewReaderSize(zipReader, 2048*2048)
 
-	var lastError error
-	var s string
+	var (
+		s       string
+		lastErr error
+	)
+
 	for {
 		line, isPrefix, err := bufferReader.ReadLine()
 		s = ""
@@ -220,9 +210,12 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 			}
 
 			if !isPrefix {
-				err := ad.parseAndFilterEvent(file, s)
-				if err != nil {
-					lastError = err
+				if err := ad.parseAndFilterEvent(s); err != nil {
+					ad.logger.Error("failed to process event", "error", err, "skip", ad.skipErrors)
+
+					if !ad.skipErrors {
+						lastErr = err
+					}
 				}
 			}
 
@@ -239,30 +232,46 @@ func (ad *ArchiveDownloader) download(file *common.ArchiveFile) error {
 		}
 	}
 
-	//only mark the file as downloaded if all lines are parsed.
-	if lastError == nil {
-		err = ad.saveFileIntoDatabase(file)
-		if err != nil {
-			return err
-		}
+	if lastErr != nil {
+		return lastErr
 	}
 
-	return lastError
+	return ad.saveFileIntoDatabase(file)
 }
 
-func (ad *ArchiveDownloader) parseAndFilterEvent(file *common.ArchiveFile, line string) error {
-	ge := common.GithubEventJSON{}
-	err := json.Unmarshal([]byte(line), &ge)
-	if err != nil {
-		ad.logger.Error("failed to parse json of file", "date", file.CreatedAt, "error", err)
+func (ad *ArchiveDownloader) buildDownloadURL(file *common.ArchiveFile) string {
+	ft := time.Unix(file.ID, 0).UTC()
+	return fmt.Sprintf(ad.url, ft.Year(), ft.Month(), ft.Day(), ft.Hour())
+}
+
+func (ad *ArchiveDownloader) parseAndFilterEvent(line string) error {
+	var ge common.GithubEventJSON
+	if err := json.Unmarshal([]byte(line), &ge); err != nil {
 		return err
 	}
 
+	if ge.Org == nil {
+		return nil
+	}
+
 	for _, v := range ad.orgNames {
-		if ge.Org != nil && ge.Org.Login == v {
-			id, _ := strconv.ParseInt(ge.ID, 10, 0)
-			ad.saveEventIntoDatabase(&common.GithubEvent{ID: id, CreatedAt: ge.CreatedAt, Data: string(line)})
-			eventCount++
+		if ge.Org.Login == v {
+			id, err := strconv.ParseInt(ge.ID, 10, 0)
+			if err != nil {
+				return err
+			}
+
+			event := &common.GithubEvent{
+				ID:        id,
+				CreatedAt: ge.CreatedAt,
+				Data:      string(line),
+			}
+
+			if err := ad.saveEventIntoDatabase(event); err != nil {
+				return err
+			}
+
+			ad.eventCount++
 		}
 	}
 
@@ -270,23 +279,41 @@ func (ad *ArchiveDownloader) parseAndFilterEvent(file *common.ArchiveFile, line 
 }
 
 func (ad *ArchiveDownloader) saveFileIntoDatabase(file *common.ArchiveFile) error {
-	//remove the file first to make development easier.
-	_, err := ad.engine.Exec("DELETE FROM archive_file WHERE ID = ? ", file.ID)
-	if err != nil {
+	session := ad.engine.NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
 		return err
 	}
 
-	_, err = ad.engine.Insert(file)
-	return err
+	//remove the file first to make development easier.
+	if _, err := session.Exec("DELETE FROM archive_file WHERE ID = ? ", file.ID); err != nil {
+		return err
+	}
+
+	if _, err := session.Insert(file); err != nil {
+		return err
+	}
+
+	return session.Commit()
 }
 
 func (ad *ArchiveDownloader) saveEventIntoDatabase(event *common.GithubEvent) error {
-	//remove the event first to make development easier.
-	_, err := ad.engine.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID)
-	if err != nil {
+	session := ad.engine.NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
 		return err
 	}
 
-	_, err = ad.engine.Insert(event)
-	return err
+	//remove the event first to make development easier.
+	if _, err := session.Exec("DELETE FROM github_event WHERE ID = ? ", event.ID); err != nil {
+		return err
+	}
+
+	if _, err := session.Insert(event); err != nil {
+		return err
+	}
+
+	return session.Commit()
 }

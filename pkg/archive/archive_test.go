@@ -1,7 +1,6 @@
 package archive
 
 import (
-	"log"
 	"testing"
 	"time"
 
@@ -32,9 +31,7 @@ func TestGenerateUrlsFor6Hours(t *testing.T) {
 
 func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 	var archivedFiles []*common.ArchiveFile
-	ad := &ArchiveDownloader{
-		doneChan: make(chan time.Time),
-	}
+	ad := &ArchiveDownloader{}
 
 	for i := 0; i < 12; i++ {
 		archivedFiles = append(archivedFiles, common.NewArchiveFile(2018, 1, 1, i))
@@ -57,21 +54,29 @@ func TestGenerateUrlsWhenArchivedFilesExists(t *testing.T) {
 }
 
 func TestWritingArchiveFile(t *testing.T) {
-	file := common.NewArchiveFile(2018, 1, 1, 1)
-
 	engine, err := InitDatabase("sqlite3", "./test.db")
 	if err != nil {
-		log.Fatalf("failed to connect to database. error: %v", err)
+		t.Fatalf("error initialising database: %v", err)
 	}
 
-	engine.Insert(file)
+	ad := &ArchiveDownloader{
+		engine: engine,
+	}
+
+	assert.NoError(t, ad.saveFileIntoDatabase(common.NewArchiveFile(2018, 1, 1, 1)))
 }
 
 func TestWritingToDatabase(t *testing.T) {
-	ad := &ArchiveDownloader{}
+	engine, err := InitDatabase("sqlite3", "./test.db")
+	if err != nil {
+		t.Fatalf("error initialising database: %v", err)
+	}
 
-	var eventsToWrite []*common.GithubEvent
+	ad := &ArchiveDownloader{
+		engine: engine,
+	}
 
+	eventsToWrite := make([]*common.GithubEvent, 0, 50)
 	for i := 1; i < 50; i++ {
 		eventsToWrite = append(eventsToWrite, &common.GithubEvent{
 			Data:      `{"field": "value"}`,
@@ -80,22 +85,9 @@ func TestWritingToDatabase(t *testing.T) {
 		})
 	}
 
-	engine, err := InitDatabase("sqlite3", "./test.db")
-	if err != nil {
-		t.Fatalf("failed to connect to database. error: %v", err)
-	}
-
-	ad.engine = engine
 	for _, etw := range eventsToWrite {
-		err = ad.saveEventIntoDatabase(etw)
-		if err != nil {
-			t.Fatalf("failed to connect to database. error: %v", err)
-		}
+		assert.NoError(t, ad.saveEventIntoDatabase(etw))
 	}
-}
-
-func fakeStopDate(days, hours int) time.Time {
-	return time.Date(2018, time.Month(1), days, hours, 0, 0, 0, time.UTC)
 }
 
 func TestArchiveFileIdFormat(t *testing.T) {
@@ -104,4 +96,8 @@ func TestArchiveFileIdFormat(t *testing.T) {
 	dt := time.Date(2015, time.Month(10), 10, 10, 0, 0, 0, time.UTC)
 
 	assert.Equal(t, af.ID, dt.Unix(), af.ID)
+}
+
+func fakeStopDate(days, hours int) time.Time {
+	return time.Date(2018, time.Month(1), days, hours, 0, 0, 0, time.UTC)
 }
