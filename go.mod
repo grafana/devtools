@@ -1,6 +1,6 @@
 module github.com/grafana/devtools
 
-go 1.12
+go 1.13
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1

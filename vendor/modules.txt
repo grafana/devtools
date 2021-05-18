@@ -21,8 +21,8 @@ github.com/google/go-querystring/query
 # github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1
 github.com/gopherjs/gopherjs/js
 # github.com/grafana/grafana v5.0.4+incompatible
-github.com/grafana/grafana/pkg/services/sqlstore/migrator
 github.com/grafana/grafana/pkg/log
+github.com/grafana/grafana/pkg/services/sqlstore/migrator
 github.com/grafana/grafana/pkg/util
 # github.com/inconshreveable/log15 v0.0.0-20171019012758-0decfc6c20d9
 github.com/inconshreveable/log15
@@ -33,9 +33,9 @@ github.com/lib/pq
 github.com/lib/pq/oid
 # github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
 github.com/mailru/easyjson
+github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-github.com/mailru/easyjson/buffer
 # github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.3
@@ -53,15 +53,15 @@ github.com/smartystreets/assertions/internal/go-render/render
 github.com/smartystreets/assertions/internal/oglematchers
 # github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
 github.com/smartystreets/goconvey/convey
-github.com/smartystreets/goconvey/convey/reporting
 github.com/smartystreets/goconvey/convey/gotest
+github.com/smartystreets/goconvey/convey/reporting
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 # github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 github.com/teris-io/shortid
 # golang.org/x/net v0.0.0-20190311183353-d8887717615a
-golang.org/x/net/context/ctxhttp
 golang.org/x/net/context
+golang.org/x/net/context/ctxhttp
 # golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
@@ -69,12 +69,12 @@ golang.org/x/oauth2/internal
 golang.org/x/sys/unix
 # google.golang.org/appengine v1.4.0
 google.golang.org/appengine/cloudsql
-google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
-google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
+google.golang.org/appengine/internal/urlfetch
+google.golang.org/appengine/urlfetch
 # gopkg.in/ini.v1 v1.33.0
 gopkg.in/ini.v1

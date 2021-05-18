@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"runtime"
@@ -34,6 +35,7 @@ func main() {
 		orgNames         []string
 		maxDuration      time.Duration
 		overrideAllFiles bool
+		skipErrors       bool
 		numWorkers       int
 		verboseLogging   bool
 	)
@@ -48,6 +50,7 @@ func main() {
 	flag.BoolVar(&overrideAllFiles, "overrideAllFiles", false, "overrides all files instead of just those missing")
 	flag.IntVar(&numWorkers, "numWorkers", runtime.NumCPU(), "number of workers to spawn")
 	flag.BoolVar(&verboseLogging, "verbose", false, "enable verbose logging")
+	flag.BoolVar(&skipErrors, "skipErrors", false, "mark archive as processed even if some events had parsing errors")
 	flag.Parse()
 
 	logger := log.New()
@@ -83,16 +86,14 @@ func main() {
 		logger.Fatal("migration failed", "error", err)
 	}
 
-	doneChan := make(chan time.Time)
-	ad := archive.NewArchiveDownloader(engine, overrideAllFiles, archiveUrl, orgNames, startDate, stopDate, numWorkers, doneChan)
-	ad.SetLogger(logger)
+	ad := archive.NewArchiveDownloader(
+		engine, overrideAllFiles, archiveUrl, orgNames, startDate, stopDate, numWorkers, skipErrors, logger,
+	)
 
-	go func() {
-		<-time.After(maxDuration)
-		close(doneChan)
-	}()
+	ctx, cancel := context.WithTimeout(context.Background(), maxDuration)
+	defer cancel()
 
-	err = ad.DownloadEvents()
+	err = ad.DownloadEvents(ctx)
 	if err != nil {
 		logger.Fatal("failed to download archive files", "error", err)
 	}
