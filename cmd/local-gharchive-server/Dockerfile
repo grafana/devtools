@@ -5,10 +5,9 @@ WORKDIR /build/
 
 COPY ./cmd ./cmd
 COPY ./pkg ./pkg
-COPY ./vendor ./vendor
 COPY ./go.mod ./go.sum ./
 
-RUN go build -mod=vendor \
+RUN go build \
   -o /build/local-gharchive-server \
   ./cmd/local-gharchive-server
 
