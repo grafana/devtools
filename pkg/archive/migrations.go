@@ -6,6 +6,19 @@ import (
 	"github.com/grafana/grafana/pkg/services/sqlstore/migrator"
 )
 
+type RawSQLMigration struct {
+	migrator.MigrationBase
+	sql string
+}
+
+func NewRawSQLMigration(sql string) *RawSQLMigration {
+	return &RawSQLMigration{sql: sql}
+}
+
+func (m *RawSQLMigration) Sql(dialect migrator.Dialect) string {
+	return m.sql
+}
+
 func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) {
 	x, err := xorm.NewEngine(dbType, connectionString)
 	x.SetColumnMapper(core.GonicMapper{})
@@ -49,6 +62,10 @@ func InitDatabase(dbType string, connectionString string) (*xorm.Engine, error) 
 	}
 
 	mig.AddMigration("create github event table", migrator.NewAddTableMigration(githubEvent))
+
+	githubEventPkey := NewRawSQLMigration("ALTER TABLE github_event ADD PRIMARY KEY (id)")
+
+	mig.AddMigration("add primary key to github event table", githubEventPkey)
 
 	return x, mig.Start()
 }
