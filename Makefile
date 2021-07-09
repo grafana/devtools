@@ -1,4 +1,4 @@
-.PHONY: all test clean images
+.PHONY: all test clean images generate-dashboards
 .DEFAULT_GOAL := all
 
 # stolen and from https://github.com/cortexproject/cortex and modified for our needs
@@ -54,4 +54,8 @@ clean:
 	$(SUDO) docker rmi $(IMAGE_NAMES) >/dev/null 2>&1 || true
 	rm -rf $(UPTODATE_FILES) $(EXES) .cache
 	go clean ./...
+
+generate-dashboards:
+	bash scripts/jsonnet-check.sh
+	bash scripts/jsonnet-generate.sh ${DS_TYPE} ${DS_NAME} ${FROM} ${OUTPUT}
 

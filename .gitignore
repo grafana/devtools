@@ -27,3 +27,4 @@ cmd/local-gharchive-server/local-gharchive-server
 devenv/prod-*-archive-parser.yaml
 devenv/prod-*-event-aggregator.yaml
 .uptodate
+grafana-dashboards/build
